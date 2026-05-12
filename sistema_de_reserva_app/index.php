@@ -7,6 +7,9 @@ require_once __DIR__ . '/includes/bootstrap.php';
 $pdo = app_pdo();
 $theme = current_theme();
 $settings = app_settings($pdo);
+$brandLogo = trim((string) ($settings['brand_logo'] ?? ''));
+$brandFavicon = trim((string) ($settings['brand_favicon'] ?? ''));
+$brandCover = trim((string) ($settings['brand_cover'] ?? ''));
 $disciplinas = fetch_all($pdo->prepare('SELECT * FROM disciplinas WHERE activa = 1 ORDER BY nombre_disciplina'));
 $servicios = fetch_all(
     $pdo->prepare(
@@ -34,6 +37,9 @@ $hours = business_hours();
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?php echo escape_html(app_brand_name()); ?></title>
+    <?php if ($brandFavicon !== ''): ?>
+        <link rel="icon" href="assets/branding/<?php echo escape_html($brandFavicon); ?>">
+    <?php endif; ?>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -75,9 +81,13 @@ $hours = business_hours();
     <header class="sticky top-0 z-40 border-b border-white/40 bg-white/70 backdrop-blur-xl">
         <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
             <a href="#inicio" class="flex items-center gap-3">
-                <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl text-sm font-semibold text-white shadow-soft" style="background: linear-gradient(135deg, var(--secondary), var(--primary));">
-                    SR
-                </span>
+                <?php if ($brandLogo !== ''): ?>
+                    <img class="h-11 w-11 rounded-2xl object-cover shadow-soft" src="assets/branding/<?php echo escape_html($brandLogo); ?>" alt="<?php echo escape_html(app_brand_name()); ?>">
+                <?php else: ?>
+                    <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl text-sm font-semibold text-white shadow-soft" style="background: linear-gradient(135deg, var(--secondary), var(--primary));">
+                        SR
+                    </span>
+                <?php endif; ?>
                 <div>
                     <div class="text-xs uppercase tracking-[0.28em] text-slate-500">Plataforma</div>
                     <div class="text-base font-semibold"><?php echo escape_html(app_display_name()); ?></div>
@@ -97,6 +107,11 @@ $hours = business_hours();
     <main>
         <section id="inicio" class="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.2fr_0.8fr] lg:px-8 lg:py-16">
             <div class="panel rounded-[2rem] p-6 shadow-panel sm:p-10">
+                <?php if ($brandCover !== ''): ?>
+                    <div class="mb-6 overflow-hidden rounded-[1.5rem]">
+                        <img class="h-52 w-full object-cover" src="assets/branding/<?php echo escape_html($brandCover); ?>" alt="<?php echo escape_html(app_brand_name()); ?>">
+                    </div>
+                <?php endif; ?>
                 <div class="mb-5 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.26em] text-slate-600">
                     <span class="inline-block h-2.5 w-2.5 rounded-full" style="background: var(--primary);"></span>
                     <?php echo escape_html($settings['business_type'] ?? 'Centro de servicios'); ?>
@@ -233,6 +248,7 @@ $hours = business_hours();
                         <span class="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-500">Acceso inmediato</span>
                     </div>
                     <form action="auth.php" method="post" class="mt-6 grid gap-4 sm:grid-cols-2">
+                        <?php echo csrf_input(); ?>
                         <label class="block text-sm font-medium text-slate-600">Nombre
                             <input class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-slate-400" name="first_name" required>
                         </label>
@@ -262,6 +278,7 @@ $hours = business_hours();
                         <div class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Ingreso cliente</div>
                         <h3 class="mt-2 text-2xl font-semibold">Entrar al panel</h3>
                         <form action="auth.php" method="post" class="mt-6 space-y-4">
+                            <?php echo csrf_input(); ?>
                             <label class="block text-sm font-medium text-slate-600">Usuario
                                 <input class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-slate-400" name="username" required>
                             </label>
@@ -270,6 +287,17 @@ $hours = business_hours();
                             </label>
                             <button class="inline-flex w-full items-center justify-center rounded-2xl px-6 py-3 text-sm font-semibold text-white shadow-soft transition hover:opacity-95" style="background: linear-gradient(135deg, var(--accent), var(--primary));" type="submit" name="action" value="login-customer">
                                 Entrar al panel
+                            </button>
+                        </form>
+                        <form action="auth.php" method="post" class="mt-4 space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                            <?php echo csrf_input(); ?>
+                            <input type="hidden" name="action" value="request-password-reset">
+                            <div class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Recuperar acceso</div>
+                            <label class="block text-sm font-medium text-slate-600">Correo o usuario
+                                <input class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-slate-400" name="identity" required>
+                            </label>
+                            <button class="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 px-6 py-3 text-sm font-semibold text-slate-900" type="submit">
+                                Generar enlace de recuperación
                             </button>
                         </form>
                     </div>

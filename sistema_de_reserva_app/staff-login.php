@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/includes/bootstrap.php';
+
 $theme = current_theme();
 ?>
 <!doctype html>
@@ -13,16 +14,8 @@ $theme = current_theme();
     <title>Acceso profesional</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root {
-            --primary: <?php echo escape_html($theme['primary']); ?>;
-            --secondary: <?php echo escape_html($theme['secondary']); ?>;
-            --accent: <?php echo escape_html($theme['accent']); ?>;
-        }
-        body {
-            background:
-                radial-gradient(circle at top right, color-mix(in srgb, var(--accent) 18%, transparent), transparent 28%),
-                linear-gradient(180deg, #f8fafc 0%, #edf2f7 100%);
-        }
+        :root { --primary: <?php echo escape_html($theme['primary']); ?>; --accent: <?php echo escape_html($theme['accent']); ?>; }
+        body { background: radial-gradient(circle at top right, color-mix(in srgb, var(--accent) 18%, transparent), transparent 28%), linear-gradient(180deg, #f8fafc 0%, #edf2f7 100%); }
     </style>
 </head>
 <body class="min-h-screen px-4 py-10 text-slate-900 sm:px-6">
@@ -36,6 +29,7 @@ $theme = current_theme();
             <a href="index.php" class="text-sm font-medium text-slate-500 transition hover:text-slate-900">← Volver al inicio</a>
             <h2 class="mt-6 text-3xl font-semibold">Entrar a mi agenda</h2>
             <form action="auth.php" method="post" class="mt-8 space-y-5">
+                <?php echo csrf_input(); ?>
                 <label class="block text-sm font-medium text-slate-600">Usuario
                     <input class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-slate-400" name="username" required>
                 </label>
@@ -46,6 +40,7 @@ $theme = current_theme();
                     Abrir agenda
                 </button>
             </form>
+            <a href="index.php#acceso" class="mt-4 inline-flex text-sm font-medium text-slate-500 hover:text-slate-900">Recuperar acceso</a>
         </section>
     </main>
 </body>

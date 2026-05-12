@@ -8,6 +8,7 @@ require_role('id_cliente', '3', 'index.php');
 
 $pdo = app_pdo();
 $theme = current_theme();
+$csrfToken = csrf_token();
 $disciplinas = fetch_all($pdo->prepare('SELECT * FROM disciplinas WHERE activa = 1 ORDER BY nombre_disciplina'));
 $profesionales = fetch_all(
     $pdo->prepare(
@@ -266,11 +267,12 @@ $hours = business_hours();
                 id_servicio: document.getElementById('txt_servicio').value,
                 dia: document.getElementById('dia').value,
                 hora: document.getElementById('hora_comienzo').value,
-                notas_reserva: document.getElementById('notas_reserva').value
+                notas_reserva: document.getElementById('notas_reserva').value,
+                csrf_token: <?php echo json_encode($csrfToken); ?>
             });
             const response = await fetch('bookings/api.php?accion=agendar_customer', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': <?php echo json_encode($csrfToken); ?> },
                 body: payload.toString()
             });
             const result = await response.json();

@@ -24,12 +24,11 @@ try {
             ensure_unique_value($pdo, 'professionals', 'user_professional', $usuario);
             ensure_unique_value($pdo, 'professionals', 'email_professional', $email);
 
-            $stmt = $pdo->prepare(
+            $pdo->prepare(
                 'INSERT INTO professionals
                  (user_professional, pass_professional, name_professional, email_professional, phone_professional, bio_professional, calendar_color, id_disciplina, activo, id_estado)
                  VALUES (:usuario, :password, :nombre, :email, :telefono, :bio, :color, :id_disciplina, 1, 2)'
-            );
-            $stmt->execute(
+            )->execute(
                 array(
                     ':usuario' => $usuario,
                     ':password' => $password,
@@ -41,6 +40,8 @@ try {
                     ':id_disciplina' => $disciplina === '' ? null : (int) $disciplina,
                 )
             );
+
+            ensure_professional_schedule_rows($pdo, (int) $pdo->lastInsertId());
 
             app_redirect('../admin-dashboard.php#profesionales', 'Profesional creado correctamente');
             break;
@@ -76,12 +77,11 @@ try {
                 $suffix++;
             }
 
-            $stmt = $pdo->prepare(
+            $pdo->prepare(
                 'INSERT INTO clientes
                  (nombre_cliente, apellido_cliente, telefono_cliente, correo_cliente, user_cliente, pass_cliente, notas_cliente, id_estado)
                  VALUES (:nombre, :apellido, :telefono, :correo, :usuario, :password, :notas, 3)'
-            );
-            $stmt->execute(
+            )->execute(
                 array(
                     ':nombre' => $nombre,
                     ':apellido' => $apellido,
@@ -97,11 +97,10 @@ try {
             break;
 
         case 'disciplina':
-            $stmt = $pdo->prepare(
+            $pdo->prepare(
                 'INSERT INTO disciplinas (nombre_disciplina, descripcion_disciplina, color_disciplina, activa)
                  VALUES (:nombre, :descripcion, :color, 1)'
-            );
-            $stmt->execute(
+            )->execute(
                 array(
                     ':nombre' => request_post_string('nombre_disciplina'),
                     ':descripcion' => request_post_string('descripcion_disciplina', false),
@@ -114,11 +113,10 @@ try {
 
         case 'servicio':
             $imagen = save_service_image($_FILES['img_servicio'] ?? array());
-            $stmt = $pdo->prepare(
+            $pdo->prepare(
                 'INSERT INTO servicios (id_disciplina, nombre_servicio, descripcion_servicio, precio_servicio, duracion_minutos, modalidad_servicio, img_servicio, color, textColor, activo)
                  VALUES (:id_disciplina, :nombre, :descripcion, :precio, :duracion, :modalidad, :imagen, :color, :textColor, 1)'
-            );
-            $stmt->execute(
+            )->execute(
                 array(
                     ':id_disciplina' => request_post_string('id_disciplina', false) === '' ? null : (int) request_post_string('id_disciplina', false),
                     ':nombre' => request_post_string('nombre_servicio'),
@@ -136,19 +134,18 @@ try {
             break;
 
         case 'agendar_admin':
-            $idCliente = (int) request_post_string('txt_cliente');
-            $idProfessional = (int) request_post_string('professional_id');
-            $idServicio = (int) request_post_string('txt_servicio');
+            $idCliente = request_post_int('txt_cliente');
+            $idProfessional = request_post_int('professional_id');
+            $idServicio = request_post_int('txt_servicio');
             $start = validate_datetime_slot(request_post_string('dia'), request_post_string('hora'));
             $duration = service_duration_minutes($pdo, $idServicio);
             $end = calculate_event_end($start, $duration);
             ensure_slot_available($pdo, $idProfessional, $start, $end);
 
-            $stmt = $pdo->prepare(
+            $pdo->prepare(
                 'INSERT INTO eventos (title, id_cliente, id_professional, id_servicio, start, end, notas_reserva)
                  VALUES (:title, :id_cliente, :id_professional, :id_servicio, :start, :end, :notas)'
-            );
-            $stmt->execute(
+            )->execute(
                 array(
                     ':title' => 'Reservado',
                     ':id_cliente' => $idCliente,
@@ -179,7 +176,23 @@ try {
                 save_setting($pdo, $key, $value);
             }
 
-            app_redirect('../admin-dashboard.php#configuracion', 'Configuración actualizada');
+            save_setting(
+                $pdo,
+                'brand_logo',
+                save_brand_asset($_FILES['brand_logo'] ?? array(), 'logo', array('png', 'jpg', 'jpeg', 'webp', 'svg'), array('image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'), setting_value('brand_logo', ''))
+            );
+            save_setting(
+                $pdo,
+                'brand_favicon',
+                save_brand_asset($_FILES['brand_favicon'] ?? array(), 'favicon', array('png', 'ico'), array('image/png', 'image/x-icon', 'image/vnd.microsoft.icon'), setting_value('brand_favicon', ''))
+            );
+            save_setting(
+                $pdo,
+                'brand_cover',
+                save_brand_asset($_FILES['brand_cover'] ?? array(), 'cover', array('png', 'jpg', 'jpeg', 'webp'), array('image/png', 'image/jpeg', 'image/webp'), setting_value('brand_cover', ''))
+            );
+
+            app_redirect('../admin-dashboard.php#configuracion', 'Configuracion actualizada');
             break;
 
         default:

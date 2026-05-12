@@ -33,14 +33,13 @@ try {
 
             $passwordToStore = $newPassword === '' ? $current['pass_professional'] : hash_password_value($newPassword);
 
-            $stmt = $pdo->prepare(
+            $pdo->prepare(
                 'UPDATE professionals
                  SET user_professional = :usuario, pass_professional = :password, name_professional = :nombre,
                      email_professional = :email, phone_professional = :telefono, bio_professional = :bio,
                      calendar_color = :color, id_disciplina = :id_disciplina, activo = :activo
                  WHERE id_professional = :id'
-            );
-            $stmt->execute(
+            )->execute(
                 array(
                     ':usuario' => $usuario,
                     ':password' => $passwordToStore,
@@ -56,6 +55,66 @@ try {
             );
 
             app_redirect('../admin-dashboard.php#profesionales', 'Profesional actualizado');
+            break;
+
+        case 'professional_schedule':
+            $id = request_query_int('id_professional');
+            ensure_professional_schedule_rows($pdo, $id);
+
+            foreach (range(0, 6) as $weekday) {
+                $isWorking = request_post_string('is_working_' . $weekday, false) === '1' ? 1 : 0;
+                $startTime = validate_time_value(request_post_string('start_time_' . $weekday, false), true);
+                $endTime = validate_time_value(request_post_string('end_time_' . $weekday, false), true);
+                $breakStart = validate_time_value(request_post_string('break_start_' . $weekday, false), true);
+                $breakEnd = validate_time_value(request_post_string('break_end_' . $weekday, false), true);
+                $slotInterval = max(5, request_post_int('slot_interval_' . $weekday, false) ?: (int) setting_value('slot_interval', '30'));
+
+                if ($isWorking === 1 && ($startTime === '' || $endTime === '')) {
+                    throw new InvalidArgumentException('Cada dia activo debe tener horario de inicio y termino');
+                }
+
+                $pdo->prepare(
+                    'UPDATE professional_availability
+                     SET is_working = :is_working, start_time = :start_time, end_time = :end_time,
+                         break_start = :break_start, break_end = :break_end, slot_interval = :slot_interval
+                     WHERE id_professional = :id_professional AND weekday = :weekday'
+                )->execute(
+                    array(
+                        ':is_working' => $isWorking,
+                        ':start_time' => $startTime !== '' ? $startTime : '09:00',
+                        ':end_time' => $endTime !== '' ? $endTime : '18:00',
+                        ':break_start' => $breakStart,
+                        ':break_end' => $breakEnd,
+                        ':slot_interval' => $slotInterval,
+                        ':id_professional' => $id,
+                        ':weekday' => $weekday,
+                    )
+                );
+            }
+
+            $exceptionDate = request_post_string('exception_date', false);
+            if ($exceptionDate !== '') {
+                $pdo->prepare(
+                    'INSERT INTO professional_exceptions (id_professional, exception_date, is_day_off, start_time, end_time, notes)
+                     VALUES (:id_professional, :exception_date, :is_day_off, :start_time, :end_time, :notes)
+                     ON CONFLICT(id_professional, exception_date) DO UPDATE SET
+                        is_day_off = excluded.is_day_off,
+                        start_time = excluded.start_time,
+                        end_time = excluded.end_time,
+                        notes = excluded.notes'
+                )->execute(
+                    array(
+                        ':id_professional' => $id,
+                        ':exception_date' => $exceptionDate,
+                        ':is_day_off' => request_post_string('exception_day_off', false) === '1' ? 1 : 0,
+                        ':start_time' => validate_time_value(request_post_string('exception_start_time', false), true),
+                        ':end_time' => validate_time_value(request_post_string('exception_end_time', false), true),
+                        ':notes' => request_post_string('exception_notes', false),
+                    )
+                );
+            }
+
+            app_redirect('../management/professional-edit.php?id_professional=' . $id, 'Disponibilidad actualizada');
             break;
 
         case 'cliente':
@@ -78,13 +137,12 @@ try {
 
             $passwordToStore = $newPassword === '' ? $current['pass_cliente'] : hash_password_value($newPassword);
 
-            $stmt = $pdo->prepare(
+            $pdo->prepare(
                 'UPDATE clientes
                  SET nombre_cliente = :nombre, apellido_cliente = :apellido, telefono_cliente = :telefono,
                      correo_cliente = :correo, user_cliente = :usuario, pass_cliente = :password, notas_cliente = :notas
                  WHERE id_cliente = :id'
-            );
-            $stmt->execute(
+            )->execute(
                 array(
                     ':nombre' => $nombre,
                     ':apellido' => $apellido,
@@ -102,12 +160,11 @@ try {
 
         case 'disciplina':
             $id = request_query_int('id_disciplina');
-            $stmt = $pdo->prepare(
+            $pdo->prepare(
                 'UPDATE disciplinas
                  SET nombre_disciplina = :nombre, descripcion_disciplina = :descripcion, color_disciplina = :color, activa = :activa
                  WHERE id_disciplina = :id'
-            );
-            $stmt->execute(
+            )->execute(
                 array(
                     ':nombre' => request_post_string('nombre_disciplina'),
                     ':descripcion' => request_post_string('descripcion_disciplina', false),
@@ -128,14 +185,13 @@ try {
 
             $imagen = save_service_image($_FILES['img_servicio'] ?? array(), (string) $current['img_servicio']);
 
-            $stmt = $pdo->prepare(
+            $pdo->prepare(
                 'UPDATE servicios
                  SET id_disciplina = :id_disciplina, nombre_servicio = :nombre, descripcion_servicio = :descripcion,
                      precio_servicio = :precio, duracion_minutos = :duracion, modalidad_servicio = :modalidad,
                      img_servicio = :imagen, color = :color, textColor = :textColor, activo = :activo
                  WHERE id_servicio = :id'
-            );
-            $stmt->execute(
+            )->execute(
                 array(
                     ':id_disciplina' => request_post_string('id_disciplina', false) === '' ? null : (int) request_post_string('id_disciplina', false),
                     ':nombre' => request_post_string('nombre_servicio'),
@@ -156,21 +212,20 @@ try {
 
         case 'evento':
             $id = request_query_int('id_evento');
-            $idProfessional = (int) request_post_string('professional_id');
-            $idCliente = (int) request_post_string('txt_cliente');
-            $idServicio = (int) request_post_string('txt_servicio');
+            $idProfessional = request_post_int('professional_id');
+            $idCliente = request_post_int('txt_cliente');
+            $idServicio = request_post_int('txt_servicio');
             $start = validate_datetime_slot(request_post_string('dia'), request_post_string('hora'));
             $duration = service_duration_minutes($pdo, $idServicio);
             $end = calculate_event_end($start, $duration);
             ensure_slot_available($pdo, $idProfessional, $start, $end, $id);
 
-            $stmt = $pdo->prepare(
+            $pdo->prepare(
                 'UPDATE eventos
                  SET id_professional = :id_professional, id_cliente = :id_cliente, id_servicio = :id_servicio,
                      start = :start, end = :end, notas_reserva = :notas, estado_reserva = :estado
                  WHERE id_evento = :id_evento'
-            );
-            $stmt->execute(
+            )->execute(
                 array(
                     ':id_professional' => $idProfessional,
                     ':id_cliente' => $idCliente,

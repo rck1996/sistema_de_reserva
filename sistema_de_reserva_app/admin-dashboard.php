@@ -124,7 +124,7 @@ $hours = business_hours();
                 <section id="configuracion" class="rounded-[2rem] border border-white/50 bg-white/85 p-5 shadow-xl backdrop-blur-xl">
                     <div class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Configuración</div>
                     <h3 class="mt-2 text-xl font-semibold">Identidad y horario</h3>
-                    <form action="management/create.php?accion=configuracion" method="post" class="mt-5 grid gap-4 sm:grid-cols-2">
+                    <form action="management/create.php?accion=configuracion" method="post" enctype="multipart/form-data" class="mt-5 grid gap-4 sm:grid-cols-2">
                         <label class="block text-sm font-medium text-slate-600">Nombre interno
                             <input class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" name="app_name" value="<?php echo escape_html($settings['app_name'] ?? 'sistema_de_reserva'); ?>">
                         </label>
@@ -151,6 +151,27 @@ $hours = business_hours();
                         </label>
                         <label class="block text-sm font-medium text-slate-600">Correo
                             <input class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" name="contact_email" value="<?php echo escape_html($settings['contact_email'] ?? ''); ?>">
+                        </label>
+                        <label class="block text-sm font-medium text-slate-600">Telefono
+                            <input class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" name="contact_phone" value="<?php echo escape_html($settings['contact_phone'] ?? ''); ?>">
+                        </label>
+                        <label class="block text-sm font-medium text-slate-600 sm:col-span-2">Direccion
+                            <input class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" name="contact_address" value="<?php echo escape_html($settings['contact_address'] ?? ''); ?>">
+                        </label>
+                        <label class="block text-sm font-medium text-slate-600">Ciudad
+                            <input class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" name="business_city" value="<?php echo escape_html($settings['business_city'] ?? ''); ?>">
+                        </label>
+                        <label class="block text-sm font-medium text-slate-600 sm:col-span-2">Mensaje de reserva
+                            <input class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" name="booking_notice" value="<?php echo escape_html($settings['booking_notice'] ?? ''); ?>">
+                        </label>
+                        <label class="block text-sm font-medium text-slate-600">Logo
+                            <input class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" name="brand_logo" type="file" accept=".png,.jpg,.jpeg,.webp,.svg">
+                        </label>
+                        <label class="block text-sm font-medium text-slate-600">Favicon
+                            <input class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" name="brand_favicon" type="file" accept=".png,.ico">
+                        </label>
+                        <label class="block text-sm font-medium text-slate-600 sm:col-span-2">Imagen de portada
+                            <input class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" name="brand_cover" type="file" accept=".png,.jpg,.jpeg,.webp">
                         </label>
                         <button class="sm:col-span-2 inline-flex items-center justify-center rounded-2xl px-6 py-3 text-sm font-semibold text-white shadow-lg" style="background: linear-gradient(135deg, var(--secondary), var(--primary));" type="submit">
                             Guardar configuración

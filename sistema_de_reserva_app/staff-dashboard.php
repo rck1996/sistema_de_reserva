@@ -8,6 +8,8 @@ require_role('id_professional', '2', 'staff-login.php');
 
 $pdo = app_pdo();
 $theme = current_theme();
+$csrfToken = csrf_token();
+$professionalId = request_session_int('id_professional');
 $clientes = fetch_all($pdo->prepare('SELECT id_cliente, nombre_cliente, apellido_cliente FROM clientes ORDER BY nombre_cliente, apellido_cliente'));
 $servicios = fetch_all(
     $pdo->prepare(
@@ -19,6 +21,7 @@ $servicios = fetch_all(
     )
 );
 $hours = business_hours();
+$scheduleSummary = professional_schedule_summary($pdo, $professionalId);
 ?>
 <!doctype html>
 <html lang="es">
@@ -88,6 +91,7 @@ $hours = business_hours();
                 <div class="flex flex-wrap gap-2 text-sm text-slate-500">
                     <span class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2">Horario <?php echo escape_html($hours['opening']); ?> - <?php echo escape_html($hours['closing']); ?></span>
                     <span class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2"><?php echo escape_html((string) $hours['slot_interval']); ?> min</span>
+                    <span class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2"><?php echo escape_html($scheduleSummary); ?></span>
                 </div>
             </div>
             <div class="mt-5" id="calendar"></div>
@@ -162,11 +166,26 @@ $hours = business_hours();
                 <strong class="block text-sm text-slate-900">Notas</strong>
                 <p class="mt-2 text-sm leading-7 text-slate-600" id="modal-notes"></p>
             </div>
+            <div class="mt-6 grid gap-3 sm:grid-cols-2">
+                <label class="block text-sm font-medium text-slate-600">Estado
+                    <select id="modal-status-select" class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3">
+                        <option value="confirmada">Confirmada</option>
+                        <option value="pendiente">Pendiente</option>
+                        <option value="cancelada">Cancelada</option>
+                    </select>
+                </label>
+                <label class="block text-sm font-medium text-slate-600 sm:col-span-2">Editar notas
+                    <textarea id="modal-notes-input" class="mt-2 min-h-24 w-full rounded-2xl border border-slate-200 px-4 py-3"></textarea>
+                </label>
+                <button id="modal-save-button" class="sm:col-span-2 inline-flex items-center justify-center rounded-2xl px-6 py-3 text-sm font-semibold text-white shadow-lg" style="background: linear-gradient(135deg, var(--accent), var(--primary));" type="button">Guardar cambios</button>
+            </div>
         </div>
     </dialog>
 
     <script>
         const modal = document.getElementById('booking-modal');
+        const csrfToken = <?php echo json_encode($csrfToken); ?>;
+        let selectedEvent = null;
         const pad = (value) => String(value).padStart(2, '0');
         const formatDate = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
         const formatTime = (date) => `${pad(date.getHours())}:${pad(date.getMinutes())}`;
@@ -197,6 +216,8 @@ $hours = business_hours();
             expandRows: true,
             nowIndicator: true,
             selectable: true,
+            editable: true,
+            eventDurationEditable: true,
             slotMinTime: '<?php echo escape_html($hours['opening']); ?>:00',
             slotMaxTime: '<?php echo escape_html($hours['closing']); ?>:00',
             slotDuration: '00:30:00',
@@ -219,19 +240,59 @@ $hours = business_hours();
                 document.getElementById('hora_comienzo').value = formatTime(info.date);
             },
             eventClick: ({ event }) => {
+                selectedEvent = event;
                 const props = event.extendedProps;
                 document.getElementById('modal-title').textContent = event.title;
                 document.getElementById('modal-customer').textContent = `${props.nombre_cliente || ''} ${props.apellido_cliente || ''}`.trim() || '-';
                 document.getElementById('modal-discipline').textContent = props.nombre_disciplina || 'General';
                 document.getElementById('modal-schedule').textContent = `${formatDateTime(event.start)} - ${formatDateTime(event.end)}`;
                 document.getElementById('modal-status').textContent = props.estado_reserva || 'confirmada';
+                document.getElementById('modal-status-select').value = props.estado_reserva || 'confirmada';
                 document.getElementById('modal-phone').textContent = props.telefono_cliente || '-';
                 document.getElementById('modal-service').textContent = props.nombre_servicio || '-';
                 document.getElementById('modal-notes').textContent = props.notas_reserva || 'Sin notas registradas.';
+                document.getElementById('modal-notes-input').value = props.notas_reserva || '';
                 modal.showModal();
+            },
+            eventDrop: async ({ event, revert }) => {
+                try {
+                    await persistEvent(event);
+                } catch (error) {
+                    alert(error.message || 'No se pudo mover la reserva');
+                    revert();
+                }
+            },
+            eventResize: async ({ event, revert }) => {
+                try {
+                    await persistEvent(event);
+                } catch (error) {
+                    alert(error.message || 'No se pudo ajustar la reserva');
+                    revert();
+                }
             }
         });
         calendar.render();
+
+        async function persistEvent(event, statusValue = '', notesValue = '') {
+            const response = await fetch('bookings/api.php?accion=update_event', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRF-Token': csrfToken
+                },
+                body: new URLSearchParams({
+                    id_evento: event.id,
+                    start: event.start.toISOString(),
+                    end: event.end.toISOString(),
+                    estado_reserva: statusValue,
+                    notas_reserva: notesValue
+                }).toString()
+            });
+            const result = await response.json();
+            if (!response.ok || !result.ok) {
+                throw new Error(result.error || 'No se pudo actualizar la reserva');
+            }
+        }
 
         document.getElementById('btn_reservar').addEventListener('click', async () => {
             const payload = new URLSearchParams({
@@ -239,11 +300,12 @@ $hours = business_hours();
                 id_servicio: document.getElementById('txt_servicio').value,
                 dia: document.getElementById('dia').value,
                 hora: document.getElementById('hora_comienzo').value,
-                notas_reserva: document.getElementById('notas_reserva').value
+                notas_reserva: document.getElementById('notas_reserva').value,
+                csrf_token: csrfToken
             });
             const response = await fetch('bookings/api.php?accion=agendar_staff', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': csrfToken },
                 body: payload.toString()
             });
             const result = await response.json();
@@ -253,6 +315,23 @@ $hours = business_hours();
             }
             calendar.refetchEvents();
             document.getElementById('pro-booking-form').reset();
+        });
+
+        document.getElementById('modal-save-button').addEventListener('click', async () => {
+            if (!selectedEvent) {
+                return;
+            }
+            try {
+                await persistEvent(
+                    selectedEvent,
+                    document.getElementById('modal-status-select').value,
+                    document.getElementById('modal-notes-input').value
+                );
+                modal.close();
+                calendar.refetchEvents();
+            } catch (error) {
+                alert(error.message || 'No se pudo guardar la reserva');
+            }
         });
     </script>
 </body>
