@@ -1,48 +1,147 @@
 # sistema_de_reserva
 
-Sistema web de reservas multidisciplinario, configurable y desacoplado de una industria específica. La aplicación está preparada para personalizar identidad, disciplinas, servicios, profesionales y horarios desde administración.
+Sistema web de reservas multidisciplinario, configurable y desacoplado de una industria especifica. La aplicacion permite operar agendas, clientes, profesionales, servicios y branding desde una sola plataforma, usando PHP + SQLite y una interfaz moderna basada en Tailwind CSS y FullCalendar.
 
-## Qué incluye esta versión
+## Resumen
 
-- SQLite lista para usar, sin dependencia de MySQL.
-- Paneles separados para administración, clientes y profesionales.
-- Calendarios visuales con FullCalendar 6.
-- Disponibilidad real por profesional.
-  Bloques no laborables, pausas y excepciones visibles en calendario.
-- Gestión inline de reservas desde modal.
-  Admin, cliente y profesional pueden actualizar o cancelar sin salir del calendario.
-- CRUD mejorado con filtros, búsqueda y acciones directas.
-- Branding configurable.
-  Nombre, portada, logo, favicon, contacto y horario.
-- Migraciones SQLite registradas con `schema_migrations`.
-- Script de humo para comprobar login, paneles y feed principal.
+El proyecto esta pensado para negocios que necesitan:
 
-## Stack
+- reservas online con validacion real de disponibilidad
+- multiples profesionales y disciplinas
+- una identidad neutral que luego pueda personalizarse
+- paneles separados por rol
+- una base ligera, facil de clonar y ejecutar
 
-- PHP 8.3
-- SQLite
-- Tailwind CSS por CDN
-- FullCalendar 6 por CDN
+No esta limitado a peluqueria. Puede adaptarse a centros de bienestar, asesoria, estetica, salud no critica, servicios profesionales y otros modelos de agenda similares.
 
-## Estructura
+## Caracteristicas funcionales
 
-- `sistema_de_reserva_app/`
-- `sistema_de_reserva_app/assets/`
-- `sistema_de_reserva_app/bookings/`
-- `sistema_de_reserva_app/customer/`
-- `sistema_de_reserva_app/management/`
-- `sistema_de_reserva_app/staff/`
-- `sistema_de_reserva_app/includes/`
-- `sistema_de_reserva_app/data/sistema_de_reserva.sqlite`
-- `tests/smoke.ps1`
+### Publico
+
+- portada configurable desde administracion
+- visualizacion de disciplinas activas
+- catalogo de servicios con imagen, precio, duracion y modalidad
+- listado visible de profesionales
+- registro de clientes desde la home
+- acceso de clientes, profesionales y administracion
+- recuperacion de contrasena
+
+### Cliente
+
+- login propio
+- panel personal con agenda visual
+- creacion de reservas
+- reprogramacion inline desde modal
+- cancelacion inline desde modal
+- visualizacion de disponibilidad por profesional
+- edicion de perfil
+- historial visible de reservas proximas
+
+### Profesional
+
+- login propio
+- panel con agenda individual
+- creacion rapida de reservas
+- drag and drop para mover reservas
+- resize para ajustar duracion desde calendario
+- cambio de estado desde modal
+- edicion de notas desde modal
+- eliminacion directa de reservas
+- filtros por estado, servicio y tipo de vista
+- visualizacion de bloques no laborables, pausas y excepciones
+- edicion de perfil
+
+### Administracion
+
+- login administrador
+- calendario global editable
+- drag and drop y resize de reservas
+- cambio de profesional, estado, notas y horario desde modal
+- eliminacion de reservas desde modal
+- creacion manual de reservas
+- gestion de clientes
+- gestion de profesionales
+- gestion de servicios
+- gestion de disciplinas
+- busqueda en listados de clientes, profesionales y servicios
+- previews de branding
+- configuracion de horarios de apertura y cierre
+- configuracion del intervalo de agenda
+- configuracion de nombre interno, nombre visible, portada, logo, favicon y datos de contacto
+
+## Disponibilidad y reglas de reserva
+
+El sistema no solo agenda por hora exacta. Tambien valida:
+
+- solape real entre reservas
+- horario semanal por profesional
+- pausas internas del profesional
+- excepciones por fecha
+- dias no laborables
+- profesional activo o inactivo
+- duracion real del servicio
+- intervalo minimo de agenda
+
+Ademas, parte de esa informacion ahora se ve visualmente en calendario:
+
+- bloques grises para tiempo no disponible
+- bloques especiales para pausas
+- excepciones visibles al consultar disponibilidad por profesional
+
+## Seguridad y endurecimiento
+
+- sesiones endurecidas
+- regeneracion de sesion en login
+- timeout de inactividad
+- consultas preparadas
+- contrasenas con `password_hash` / `password_verify`
+- CSRF en formularios y acciones criticas
+- validacion de correo, telefono, colores, fechas y horarios
+- validacion de subida de imagenes por extension y MIME
+- tokens de recuperacion de contrasena
+
+## Branding y personalizacion
+
+Desde administracion se puede configurar:
+
+- nombre interno de la plataforma
+- nombre visible del negocio
+- tipo de negocio
+- titulo principal de portada
+- subtitulo principal de portada
+- correo, telefono, direccion y ciudad
+- horario de apertura y cierre
+- intervalo base de agenda
+- mensaje de reserva
+- logo
+- favicon
+- imagen de portada
+- colores del sistema
+
+Si no se sube favicon, la app usa uno por defecto para evitar errores 404 en navegacion.
+
+## Datos demo incluidos
+
+La base que va versionada en el repositorio incluye una demo util para revision:
+
+- disciplinas demo
+- profesionales demo
+- clientes demo
+- servicios demo
+- reservas confirmadas y pendientes
+- excepciones de horario demo
+
+Esto permite revisar el flujo completo sin partir desde cero.
 
 ## Credenciales demo
 
 Administrador:
+
 - correo: `admin@sistema.local`
 - clave: `Admin12345`
 
 Profesionales demo:
+
 - usuario: `ana.bustos`
 - clave: `Profesional123`
 - usuario: `matias.reyes`
@@ -51,6 +150,7 @@ Profesionales demo:
 - clave: `Profesional123`
 
 Clientes demo:
+
 - usuario: `camila.torres`
 - clave: `Cliente123`
 - usuario: `diego.molina`
@@ -58,44 +158,89 @@ Clientes demo:
 - usuario: `valentina.rojas`
 - clave: `Cliente123`
 
-## Datos demo incluidos
+Nota:
 
-La base del repositorio arranca con:
+- si tu base local venia de una version heredada, la migracion intenta reparar automaticamente datos antiguos como `peluqueros` hacia `professionals`
 
-- 3 disciplinas
-- 3 profesionales
-- 3 clientes
-- 3 servicios
-- reservas demo confirmadas y pendientes
-- una excepción de horario para mostrar disponibilidad especial
+## Arquitectura general
 
-Esto permite revisar el producto sin partir desde una base vacía.
+### Stack
+
+- PHP 8.3
+- SQLite
+- Tailwind CSS por CDN
+- FullCalendar 6 por CDN
+
+### Estructura principal
+
+- `sistema_de_reserva_app/`
+- `sistema_de_reserva_app/assets/`
+- `sistema_de_reserva_app/assets/services/`
+- `sistema_de_reserva_app/assets/branding/`
+- `sistema_de_reserva_app/bookings/`
+- `sistema_de_reserva_app/customer/`
+- `sistema_de_reserva_app/management/`
+- `sistema_de_reserva_app/staff/`
+- `sistema_de_reserva_app/includes/`
+- `sistema_de_reserva_app/data/sistema_de_reserva.sqlite`
+- `tests/smoke.ps1`
+- `VERSIONES.md`
+
+### Archivos clave
+
+- `sistema_de_reserva_app/includes/bootstrap.php`
+  Inicializacion, helpers de dominio, validaciones y compatibilidad de datos heredados.
+- `sistema_de_reserva_app/includes/migrations.php`
+  Migraciones SQLite versionadas.
+- `sistema_de_reserva_app/includes/view.php`
+  Helpers compartidos de presentacion.
+- `sistema_de_reserva_app/bookings/api.php`
+  Acciones AJAX para crear, editar y eliminar reservas.
+- `sistema_de_reserva_app/bookings/availability-feed.php`
+  Feed visual de disponibilidad y bloques no laborables.
 
 ## Flujos principales
 
-Home pública:
-- revisar disciplinas, servicios y equipo
-- registrar cliente
-- iniciar sesión como cliente
+### Flujo publico
 
-Panel cliente:
-- reservar horario
-- ver disponibilidad visual por profesional
-- reprogramar o cancelar reservas desde modal
+1. El visitante entra a la home.
+2. Revisa disciplinas, servicios y profesionales.
+3. Se registra como cliente o inicia sesion.
 
-Panel profesional:
-- revisar agenda propia
-- ver pausas, tiempo no laborable y excepciones
-- crear, actualizar o eliminar reservas desde el calendario
+### Flujo cliente
 
-Panel administrador:
-- configurar identidad y horario
-- gestionar profesionales, clientes y servicios
-- usar calendario global con filtros y edición inline
+1. El cliente entra a su panel.
+2. Filtra por disciplina y elige profesional y servicio.
+3. Reserva un bloque horario.
+4. Puede reprogramar o cancelar desde el modal del calendario.
 
-## Ejecución local
+### Flujo profesional
 
-Arrancar:
+1. El profesional entra a su agenda.
+2. Visualiza reservas, pausas y tiempo no disponible.
+3. Puede crear, mover, editar o eliminar reservas desde el calendario.
+
+### Flujo administrador
+
+1. El admin entra al panel global.
+2. Configura identidad y agenda.
+3. Gestiona clientes, equipo, servicios y disciplinas.
+4. Opera reservas desde el calendario central.
+
+## Instalacion y ejecucion local
+
+### Requisitos
+
+- PHP 8.3 o compatible
+- extensiones `pdo_sqlite` y `sqlite3`
+- permisos de escritura sobre:
+  - `sistema_de_reserva_app/data/`
+  - `sistema_de_reserva_app/assets/services/`
+  - `sistema_de_reserva_app/assets/branding/`
+
+### Arranque local
+
+Iniciar:
 
 ```bat
 start-local.cmd
@@ -107,22 +252,15 @@ Detener:
 stop-local.cmd
 ```
 
-URL local:
+URL:
 
 - `http://127.0.0.1:8000/`
 
-## Requisitos
+## Pruebas
 
-- PHP 8.3 o compatible
-- extensiones `pdo_sqlite` y `sqlite3`
-- permisos de escritura sobre:
-  - `sistema_de_reserva_app/data/`
-  - `sistema_de_reserva_app/assets/services/`
-  - `sistema_de_reserva_app/assets/branding/`
+### Smoke tests
 
-## Pruebas de humo
-
-Con el servidor local arriba:
+Con el servidor levantado:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tests\smoke.ps1
@@ -130,24 +268,40 @@ powershell -ExecutionPolicy Bypass -File .\tests\smoke.ps1
 
 El script valida:
 
-- home pública
+- home publica
 - login admin
 - panel admin
-- registro/login cliente
+- login profesional
+- panel profesional
+- registro y login cliente
 - panel cliente
-- feed público del calendario
+- creacion de reserva cliente
+- reprogramacion de reserva cliente
+- feed publico del calendario
 
-## Publicación recomendada
+## Publicacion recomendada
 
 1. Mantener el repositorio con nombre `sistema_de_reserva`.
 2. Ignorar `.local/` porque solo contiene runtime local y logs.
 3. Conservar `sistema_de_reserva_app/data/sistema_de_reserva.sqlite` si se quiere una demo lista para revisar.
-4. Cambiar credenciales iniciales del admin después del primer despliegue.
-5. Ejecutar `tests/smoke.ps1` antes de publicar una nueva versión.
+4. Cambiar credenciales iniciales del admin despues del primer despliegue.
+5. Ejecutar `tests/smoke.ps1` antes de publicar una nueva version.
+6. Revisar `VERSIONES.md` para dejar trazabilidad clara del release.
 
-## Notas técnicas
+## Limitaciones actuales
 
-- La app mantiene compatibilidad de migración para bases heredadas del proyecto original.
-- El código operativo ya no depende de nombres antiguos relacionados con peluquería.
-- Las migraciones versionadas nuevas viven en `sistema_de_reserva_app/includes/migrations.php`.
-- Las utilidades visuales compartidas viven en `sistema_de_reserva_app/includes/view.php`.
+- Tailwind sigue cargando por CDN, no por build local.
+- No hay suite formal de tests unitarios o integracion mas alla del smoke test.
+- Parte de la compatibilidad heredada sigue concentrada en `bootstrap.php`.
+- No hay sistema de notificaciones por correo o WhatsApp.
+
+## Documentacion adicional
+
+- historial de cambios: [VERSIONES.md](C:/Users/x13/sistema_de_reserva/VERSIONES.md)
+
+## Notas tecnicas
+
+- El codigo operativo ya no depende de nombres antiguos relacionados con peluqueria.
+- La app mantiene compatibilidad de migracion para bases heredadas del proyecto original.
+- Las migraciones nuevas se registran en `schema_migrations`.
+- Los helpers visuales compartidos viven en `sistema_de_reserva_app/includes/view.php`.
