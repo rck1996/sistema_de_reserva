@@ -7,6 +7,7 @@ require_once __DIR__ . '/../includes/bootstrap.php';
 require_role('id_cliente', '3', '../index.php');
 
 $pdo = app_pdo();
+require_csrf();
 
 try {
     $stmt = $pdo->prepare('DELETE FROM eventos WHERE id_evento = :id_evento AND id_cliente = :id_cliente');

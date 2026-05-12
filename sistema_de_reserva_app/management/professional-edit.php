@@ -32,6 +32,7 @@ $weekdayLabels = weekday_labels();
         <a class="text-sm font-medium text-slate-500 hover:text-slate-900" href="../admin-dashboard.php#equipo">← Volver</a>
         <h1 class="mt-4 text-3xl font-semibold">Editar profesional</h1>
         <form action="update.php?id_professional=<?php echo escape_html((string) $profesional['id_professional']); ?>&accion=profesional" method="post" class="mt-6 grid gap-4 sm:grid-cols-2">
+            <?php echo csrf_input(); ?>
             <label class="block text-sm font-medium text-slate-600">Nombre<input class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" name="name_professional" value="<?php echo escape_html($profesional['name_professional']); ?>" required></label>
             <label class="block text-sm font-medium text-slate-600">Usuario<input class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" name="user_professional" value="<?php echo escape_html($profesional['user_professional']); ?>" required></label>
             <label class="block text-sm font-medium text-slate-600">Correo<input class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" name="email_professional" type="email" value="<?php echo escape_html($profesional['email_professional']); ?>" required></label>
@@ -49,6 +50,7 @@ $weekdayLabels = weekday_labels();
         <div class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Disponibilidad</div>
         <h2 class="mt-3 text-2xl font-semibold">Horario semanal y excepciones</h2>
         <form action="update.php?id_professional=<?php echo escape_html((string) $professionalId); ?>&accion=professional_schedule" method="post" class="mt-6 space-y-5">
+            <?php echo csrf_input(); ?>
             <?php foreach ($weekdayLabels as $weekday => $label): $row = $schedule[$weekday]; ?>
                 <div class="grid gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-[1fr_repeat(5,minmax(0,1fr))]">
                     <label class="block text-sm font-medium text-slate-700">

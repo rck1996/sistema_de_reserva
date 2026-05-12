@@ -7,6 +7,7 @@ require_once __DIR__ . '/../includes/bootstrap.php';
 require_role('id_professional', '2', '../staff-login.php');
 
 $pdo = app_pdo();
+require_csrf();
 
 try {
     $id = request_session_int('id_professional');

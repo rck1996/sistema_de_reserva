@@ -41,6 +41,7 @@ $reservas = fetch_all(
     array(':id_cliente' => request_session_int('id_cliente'))
 );
 $hours = business_hours();
+$ownedReservationIds = array_map(static fn (array $reserva): int => (int) $reserva['id_evento'], $reservas);
 ?>
 <!doctype html>
 <html lang="es">
@@ -62,14 +63,7 @@ $hours = business_hours();
                 linear-gradient(180deg, #f8fafc 0%, #edf2f7 100%);
         }
         .fc .fc-toolbar-title { font-size: 1.05rem; font-weight: 700; color: #0f172a; }
-        .fc .fc-button {
-            border-radius: 999px;
-            border: 0;
-            box-shadow: none;
-            padding: 0.7rem 1rem;
-            background: #e2e8f0;
-            color: #0f172a;
-        }
+        .fc .fc-button { border-radius: 999px; border: 0; box-shadow: none; padding: 0.7rem 1rem; background: #e2e8f0; color: #0f172a; }
         .fc .fc-button-primary:not(:disabled).fc-button-active,
         .fc .fc-button-primary:not(:disabled):active { background: var(--secondary); }
         .fc .fc-scrollgrid, .fc-theme-standard td, .fc-theme-standard th { border-color: rgba(148, 163, 184, 0.22); }
@@ -96,10 +90,11 @@ $hours = business_hours();
             <div class="flex flex-col gap-3 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                     <div class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Agenda visual</div>
-                    <h2 class="mt-2 text-2xl font-semibold">Reserva con mejor contexto</h2>
+                    <h2 class="mt-2 text-2xl font-semibold">Reservas y disponibilidad</h2>
                 </div>
                 <div class="flex flex-wrap gap-2 text-sm text-slate-500">
                     <span class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2">Horario <?php echo escape_html($hours['opening']); ?> - <?php echo escape_html($hours['closing']); ?></span>
+                    <span class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2">Tus reservas se pueden editar desde el modal</span>
                 </div>
             </div>
             <div class="mt-5" id="calendar"></div>
@@ -108,7 +103,7 @@ $hours = business_hours();
         <aside class="space-y-6">
             <section class="rounded-[2rem] border border-white/50 bg-white/85 p-5 shadow-xl backdrop-blur-xl">
                 <div class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Nueva reserva</div>
-                <h3 class="mt-2 text-xl font-semibold">Flujo más simple</h3>
+                <h3 class="mt-2 text-xl font-semibold">Reserva en pocos pasos</h3>
                 <form id="client-booking-form" class="mt-5 space-y-4">
                     <label class="block text-sm font-medium text-slate-600">Disciplina
                         <select class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-slate-400" id="disciplina_cliente">
@@ -156,7 +151,7 @@ $hours = business_hours();
             </section>
 
             <section class="rounded-[2rem] border border-white/50 bg-white/85 p-5 shadow-xl backdrop-blur-xl">
-                <div class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Mis reservas</div>
+                <div class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Próximas reservas</div>
                 <div class="mt-4 space-y-3">
                     <?php foreach (array_slice($reservas, 0, 4) as $reserva): ?>
                         <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -177,7 +172,7 @@ $hours = business_hours();
                     <div class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Disponibilidad</div>
                     <h3 class="mt-2 text-2xl font-semibold" id="modal-title">Reserva</h3>
                 </div>
-                <button class="rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600" onclick="document.getElementById('booking-modal').close()">Cerrar</button>
+                <button class="rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600" onclick="document.getElementById('booking-modal').close()" type="button">Cerrar</button>
             </div>
             <div class="mt-6 grid gap-4 sm:grid-cols-2 text-sm text-slate-600">
                 <div><strong class="block text-slate-900">Profesional</strong><span id="modal-professional"></span></div>
@@ -186,15 +181,23 @@ $hours = business_hours();
                 <div><strong class="block text-slate-900">Estado</strong><span id="modal-status"></span></div>
                 <div><strong class="block text-slate-900">Servicio</strong><span id="modal-service"></span></div>
             </div>
+            <div id="modal-owned-actions" class="mt-6 hidden flex-col gap-3 sm:flex-row">
+                <a id="modal-edit-link" class="inline-flex items-center justify-center rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700" href="#">Editar reserva</a>
+                <form id="modal-delete-form" method="post" class="flex-1">
+                    <?php echo csrf_input(); ?>
+                    <button class="inline-flex w-full items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-5 py-3 text-sm font-semibold text-rose-600" type="submit">Cancelar reserva</button>
+                </form>
+            </div>
+            <p id="modal-readonly-note" class="mt-6 text-sm text-slate-500">Este bloque corresponde a una reserva ocupada en la agenda.</p>
         </div>
     </dialog>
 
     <script>
         const modal = document.getElementById('booking-modal');
+        const ownedReservationIds = new Set(<?php echo json_encode($ownedReservationIds); ?>.map((value) => Number(value)));
         const pad = (value) => String(value).padStart(2, '0');
         const formatDate = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-        const formatTime = (date) => `${pad(date.getHours())}:${pad(date.getMinutes())}`;
-        const formatDateTime = (dateStr) => new Date(dateStr).toLocaleString('es-CL', {
+        const formatDateTime = (date) => new Date(date).toLocaleString('es-CL', {
             day: '2-digit',
             month: 'short',
             year: 'numeric',
@@ -223,12 +226,13 @@ $hours = business_hours();
             slotMinTime: '<?php echo escape_html($hours['opening']); ?>:00',
             slotMaxTime: '<?php echo escape_html($hours['closing']); ?>:00',
             slotDuration: '00:30:00',
-            events: async (info, success, failure) => {
+            events: async (_info, success, failure) => {
                 try {
                     const response = await fetch('bookings/public-feed.php');
                     const raw = await response.json();
                     success(raw.map((event) => ({
                         ...event,
+                        id: String(event.id_evento),
                         title: event.nombre_servicio || 'Reserva',
                         backgroundColor: event.color || event.calendar_color || '#0f766e',
                         textColor: event.textColor || '#ffffff'
@@ -243,12 +247,28 @@ $hours = business_hours();
             },
             eventClick: ({ event }) => {
                 const props = event.extendedProps;
+                const reservationId = Number(event.id);
+                const isOwned = ownedReservationIds.has(reservationId);
+
                 document.getElementById('modal-title').textContent = event.title;
                 document.getElementById('modal-professional').textContent = props.name_professional || '-';
                 document.getElementById('modal-discipline').textContent = props.nombre_disciplina || 'General';
                 document.getElementById('modal-schedule').textContent = `${formatDateTime(event.start)} - ${formatDateTime(event.end)}`;
                 document.getElementById('modal-status').textContent = props.estado_reserva || 'confirmada';
                 document.getElementById('modal-service').textContent = props.nombre_servicio || '-';
+
+                const actions = document.getElementById('modal-owned-actions');
+                const note = document.getElementById('modal-readonly-note');
+                actions.classList.toggle('hidden', !isOwned);
+                note.textContent = isOwned
+                    ? 'Puedes reagendar o cancelar esta reserva.'
+                    : 'Este bloque corresponde a una reserva ocupada en la agenda.';
+
+                if (isOwned) {
+                    document.getElementById('modal-edit-link').href = `customer/booking-edit.php?id_evento=${reservationId}`;
+                    document.getElementById('modal-delete-form').action = `customer/delete.php?id_evento=${reservationId}`;
+                }
+
                 modal.showModal();
             }
         });
@@ -272,7 +292,10 @@ $hours = business_hours();
             });
             const response = await fetch('bookings/api.php?accion=agendar_customer', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': <?php echo json_encode($csrfToken); ?> },
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRF-Token': <?php echo json_encode($csrfToken); ?>
+                },
                 body: payload.toString()
             });
             const result = await response.json();

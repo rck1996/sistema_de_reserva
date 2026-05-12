@@ -8,6 +8,7 @@ require_role('id_admin', '1', '../admin-login.php');
 
 $pdo = app_pdo();
 $accion = $_GET['accion'] ?? 'no';
+require_csrf();
 
 try {
     switch ($accion) {
