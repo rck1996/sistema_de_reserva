@@ -14,8 +14,13 @@ $record = $token !== '' ? password_reset_record(app_pdo(), $token) : null;
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Restablecer contraseña</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>:root{--primary:<?php echo escape_html($theme['primary']); ?>;--secondary:<?php echo escape_html($theme['secondary']); ?>;}body{background:linear-gradient(180deg,#f8fafc 0%,#edf2f7 100%);}</style>
+    <?php render_shared_head_assets(
+        $theme,
+        array(
+            'favicon' => setting_value('brand_favicon', ''),
+            'body_background' => 'linear-gradient(180deg,#f8fafc 0%,#edf2f7 100%)',
+        )
+    ); ?>
 </head>
 <body class="min-h-screen px-4 py-10 text-slate-900 sm:px-6">
     <main class="mx-auto max-w-xl rounded-[2rem] border border-white/50 bg-white/85 p-8 shadow-2xl backdrop-blur-xl">

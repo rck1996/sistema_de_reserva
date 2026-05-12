@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/migrations.php';
+require_once __DIR__ . '/view.php';
+
 configure_session_security();
 
 if (session_status() !== PHP_SESSION_ACTIVE) {
@@ -293,6 +296,7 @@ function initialize_database(PDO $pdo): void
 
     seed_demo_content($pdo);
     ensure_professional_schedules_seeded($pdo);
+    run_registered_migrations($pdo);
 
     $initialized = true;
 }
@@ -318,6 +322,20 @@ function migrate_legacy_schema(PDO $pdo): void
     ensure_column_exists($pdo, 'professionals', 'calendar_color', 'TEXT NOT NULL DEFAULT "#0f172a"');
     ensure_column_exists($pdo, 'professionals', 'id_disciplina', 'INTEGER');
     ensure_column_exists($pdo, 'professionals', 'activo', 'INTEGER NOT NULL DEFAULT 1');
+
+    if (table_exists($pdo, 'peluqueros') && table_exists($pdo, 'professionals')) {
+        $legacyCount = (int) $pdo->query('SELECT COUNT(*) FROM peluqueros')->fetchColumn();
+        $newCount = (int) $pdo->query('SELECT COUNT(*) FROM professionals')->fetchColumn();
+
+        if ($legacyCount > 0 && $newCount === 0) {
+            $pdo->exec(
+                'INSERT INTO professionals
+                 (id_professional, user_professional, pass_professional, name_professional, email_professional, phone_professional, bio_professional, calendar_color, id_disciplina, activo, id_estado)
+                 SELECT id_peluquero, user_peluquero, pass_peluquero, nombre_peluquero, email_peluquero, telefono_peluquero, bio_peluquero, color_peluquero, id_disciplina, activo, id_estado
+                 FROM peluqueros'
+            );
+        }
+    }
 
     ensure_column_exists($pdo, 'clientes', 'notas_cliente', 'TEXT NOT NULL DEFAULT ""');
     ensure_column_exists($pdo, 'servicios', 'id_disciplina', 'INTEGER');
@@ -842,6 +860,67 @@ function current_professional_window(PDO $pdo, int $professionalId, DateTimeImmu
     return $row;
 }
 
+function professional_availability_background_events(PDO $pdo, int $professionalId, DateTimeImmutable $rangeStart, DateTimeImmutable $rangeEnd): array
+{
+    $events = array();
+    $hours = business_hours();
+    $opening = $hours['opening'];
+    $closing = $hours['closing'];
+    $cursor = $rangeStart->setTime(0, 0);
+    $endDate = $rangeEnd->setTime(0, 0);
+
+    while ($cursor <= $endDate) {
+        $date = $cursor->format('Y-m-d');
+        $window = current_professional_window($pdo, $professionalId, $cursor);
+
+        if ($window === null) {
+            $events[] = array(
+                'id' => 'availability-off-' . $date,
+                'start' => $date . 'T' . $opening . ':00',
+                'end' => $date . 'T' . $closing . ':00',
+                'display' => 'background',
+                'className' => array('availability-off'),
+                'backgroundColor' => 'rgba(148, 163, 184, 0.18)',
+                'extendedProps' => array('kind' => 'day_off'),
+            );
+            $cursor = $cursor->modify('+1 day');
+            continue;
+        }
+
+        $segments = array();
+        if ($opening < $window['start_time']) {
+            $segments[] = array($opening, $window['start_time'], 'availability-closed');
+        }
+        if ($window['end_time'] < $closing) {
+            $segments[] = array($window['end_time'], $closing, 'availability-closed');
+        }
+        if (($window['break_start'] ?? '') !== '' && ($window['break_end'] ?? '') !== '') {
+            $segments[] = array($window['break_start'], $window['break_end'], 'availability-break');
+        }
+
+        foreach ($segments as $segment) {
+            if ($segment[0] >= $segment[1]) {
+                continue;
+            }
+            $events[] = array(
+                'id' => $segment[2] . '-' . $date . '-' . $segment[0],
+                'start' => $date . 'T' . $segment[0] . ':00',
+                'end' => $date . 'T' . $segment[1] . ':00',
+                'display' => 'background',
+                'className' => array($segment[2]),
+                'backgroundColor' => $segment[2] === 'availability-break' ? 'rgba(249, 115, 22, 0.18)' : 'rgba(148, 163, 184, 0.18)',
+                'extendedProps' => array(
+                    'kind' => $segment[2] === 'availability-break' ? 'break' : 'closed',
+                ),
+            );
+        }
+
+        $cursor = $cursor->modify('+1 day');
+    }
+
+    return $events;
+}
+
 function service_duration_minutes(PDO $pdo, int $serviceId): int
 {
     $row = fetch_one($pdo->prepare('SELECT duracion_minutos FROM servicios WHERE id_servicio = :id_servicio'), array(':id_servicio' => $serviceId));
@@ -1013,6 +1092,7 @@ function seed_demo_content(PDO $pdo): void
     $professionals = array(
         array('ana.bustos', 'Ana Bustos', 'ana@sistema.local', '+56911111111', 'Especialista en evaluaciones y sesiones personalizadas.', '#0f766e', $disciplineMap['Bienestar'] ?? null),
         array('matias.reyes', 'Matias Reyes', 'matias@sistema.local', '+56922222222', 'Profesional orientado a asesoria y seguimiento.', '#2563eb', $disciplineMap['Asesoria'] ?? null),
+        array('laura.mendez', 'Laura Mendez', 'laura@sistema.local', '+56977777777', 'Acompana procesos de atencion con foco en continuidad y experiencia del cliente.', '#7c3aed', $disciplineMap['Estetica'] ?? null),
     );
     foreach ($professionals as $professional) {
         $professionalStmt->execute(
@@ -1037,6 +1117,7 @@ function seed_demo_content(PDO $pdo): void
     $services = array(
         array($disciplineMap['Bienestar'] ?? null, 'Sesion de evaluacion', 'Primer encuentro para detectar necesidades y objetivos.', 28000, 60, 'Presencial', $fallbackImage, '#0f766e', '#ffffff'),
         array($disciplineMap['Asesoria'] ?? null, 'Asesoria personalizada', 'Bloque de trabajo con seguimiento y definicion de plan.', 36000, 90, 'Presencial', $fallbackImage, '#1d4ed8', '#ffffff'),
+        array($disciplineMap['Estetica'] ?? null, 'Sesion express', 'Atencion breve para clientes que necesitan una gestion rapida del servicio.', 18000, 30, 'Presencial', $fallbackImage, '#7c3aed', '#ffffff'),
     );
     foreach ($services as $service) {
         $serviceStmt->execute(
@@ -1061,6 +1142,7 @@ function seed_demo_content(PDO $pdo): void
     $clients = array(
         array('Camila', 'Torres', '+56933333333', 'camila@sistema.local', 'camila.torres', 'Cliente demo interesada en seguimiento mensual.'),
         array('Diego', 'Molina', '+56944444444', 'diego@sistema.local', 'diego.molina', 'Cliente demo para bloques de asesoria.'),
+        array('Valentina', 'Rojas', '+56955555555', 'valentina@sistema.local', 'valentina.rojas', 'Cliente demo con preferencia por atenciones de corta duracion.'),
     );
     foreach ($clients as $client) {
         $clientStmt->execute(
@@ -1076,27 +1158,53 @@ function seed_demo_content(PDO $pdo): void
         );
     }
 
-    $firstProfessional = (int) $pdo->query('SELECT id_professional FROM professionals ORDER BY id_professional ASC LIMIT 1')->fetchColumn();
-    $firstService = (int) $pdo->query('SELECT id_servicio FROM servicios ORDER BY id_servicio ASC LIMIT 1')->fetchColumn();
-    $firstClient = (int) $pdo->query('SELECT id_cliente FROM clientes ORDER BY id_cliente ASC LIMIT 1')->fetchColumn();
+    $professionalIds = $pdo->query('SELECT id_professional FROM professionals ORDER BY id_professional ASC')->fetchAll(PDO::FETCH_COLUMN) ?: array();
+    $serviceIds = $pdo->query('SELECT id_servicio FROM servicios ORDER BY id_servicio ASC')->fetchAll(PDO::FETCH_COLUMN) ?: array();
+    $clientIds = $pdo->query('SELECT id_cliente FROM clientes ORDER BY id_cliente ASC')->fetchAll(PDO::FETCH_COLUMN) ?: array();
 
-    if ($firstProfessional > 0 && $firstService > 0 && $firstClient > 0) {
-        ensure_professional_schedule_rows($pdo, $firstProfessional);
-        $start = (new DateTimeImmutable('tomorrow 10:00'))->format('Y-m-d H:i:s');
-        $end = calculate_event_end($start, service_duration_minutes($pdo, $firstService));
-        $pdo->prepare(
+    if ($professionalIds !== array() && $serviceIds !== array() && $clientIds !== array()) {
+        foreach ($professionalIds as $professionalId) {
+            ensure_professional_schedule_rows($pdo, (int) $professionalId);
+        }
+
+        $demoEvents = array(
+            array('tomorrow 10:00', (int) $professionalIds[0], (int) $clientIds[0], (int) $serviceIds[0], 'confirmada', 'Reserva demo para mostrar un bloque confirmado.'),
+            array('tomorrow 15:00', (int) ($professionalIds[1] ?? $professionalIds[0]), (int) ($clientIds[1] ?? $clientIds[0]), (int) ($serviceIds[1] ?? $serviceIds[0]), 'pendiente', 'Reserva demo pendiente para pruebas de filtros.'),
+            array('tomorrow +2 days 11:30', (int) ($professionalIds[2] ?? $professionalIds[0]), (int) ($clientIds[2] ?? $clientIds[0]), (int) ($serviceIds[2] ?? $serviceIds[0]), 'confirmada', 'Reserva demo corta para mostrar reprogramacion.'),
+        );
+
+        $eventStmt = $pdo->prepare(
             'INSERT INTO eventos (title, id_professional, id_cliente, id_servicio, start, end, estado_reserva, notas_reserva)
              VALUES (:title, :id_professional, :id_cliente, :id_servicio, :start, :end, :estado_reserva, :notas_reserva)'
+        );
+
+        foreach ($demoEvents as $demoEvent) {
+            $start = (new DateTimeImmutable($demoEvent[0]))->format('Y-m-d H:i:s');
+            $end = calculate_event_end($start, service_duration_minutes($pdo, (int) $demoEvent[3]));
+            $eventStmt->execute(
+                array(
+                    ':title' => 'Reservado',
+                    ':id_professional' => $demoEvent[1],
+                    ':id_cliente' => $demoEvent[2],
+                    ':id_servicio' => $demoEvent[3],
+                    ':start' => $start,
+                    ':end' => $end,
+                    ':estado_reserva' => $demoEvent[4],
+                    ':notas_reserva' => $demoEvent[5],
+                )
+            );
+        }
+
+        $pdo->prepare(
+            'INSERT OR REPLACE INTO professional_exceptions (id_professional, exception_date, is_day_off, start_time, end_time, notes)
+             VALUES (:id_professional, :exception_date, 0, :start_time, :end_time, :notes)'
         )->execute(
             array(
-                ':title' => 'Reservado',
-                ':id_professional' => $firstProfessional,
-                ':id_cliente' => $firstClient,
-                ':id_servicio' => $firstService,
-                ':start' => $start,
-                ':end' => $end,
-                ':estado_reserva' => 'confirmada',
-                ':notas_reserva' => 'Reserva demo para mostrar el calendario inicial.',
+                ':id_professional' => (int) $professionalIds[0],
+                ':exception_date' => (new DateTimeImmutable('tomorrow +1 day'))->format('Y-m-d'),
+                ':start_time' => '11:00',
+                ':end_time' => '17:00',
+                ':notes' => 'Horario especial demo',
             )
         );
     }

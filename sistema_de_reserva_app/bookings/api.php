@@ -36,7 +36,7 @@ try {
                     )
                 );
 
-            echo json_encode(array('ok' => true));
+            echo json_encode(array('ok' => true, 'id_evento' => (int) $pdo->lastInsertId()));
             break;
 
         case 'agendar_staff':
@@ -64,7 +64,7 @@ try {
                     )
                 );
 
-            echo json_encode(array('ok' => true));
+            echo json_encode(array('ok' => true, 'id_evento' => (int) $pdo->lastInsertId()));
             break;
 
         case 'update_event':
@@ -102,6 +102,48 @@ try {
                     ':estado_reserva' => $estado !== '' ? $estado : $event['estado_reserva'],
                     ':notas_reserva' => $notas !== '' ? $notas : $event['notas_reserva'],
                     ':id_evento' => $idEvento,
+                )
+            );
+
+            echo json_encode(array('ok' => true));
+            break;
+
+        case 'update_event_customer':
+            require_role('id_cliente', '3', '../index.php');
+            require_csrf();
+            $idEvento = request_post_int('id_evento');
+            $event = fetch_one($pdo->prepare('SELECT * FROM eventos WHERE id_evento = :id_evento AND id_cliente = :id_cliente'), array(
+                ':id_evento' => $idEvento,
+                ':id_cliente' => request_session_int('id_cliente'),
+            ));
+            if ($event === null) {
+                throw new InvalidArgumentException('Reserva no encontrada');
+            }
+
+            $startRaw = request_post_string('start');
+            $endRaw = request_post_string('end', false);
+            $notas = request_post_string('notas_reserva', false);
+            $status = request_post_string('estado_reserva', false);
+
+            $startDate = new DateTimeImmutable($startRaw);
+            $endDate = $endRaw !== ''
+                ? new DateTimeImmutable($endRaw)
+                : new DateTimeImmutable(calculate_event_end($startDate->format('Y-m-d H:i:s'), service_duration_minutes($pdo, (int) $event['id_servicio'])));
+
+            ensure_slot_available($pdo, (int) $event['id_professional'], $startDate->format('Y-m-d H:i:s'), $endDate->format('Y-m-d H:i:s'), $idEvento);
+
+            $pdo->prepare(
+                'UPDATE eventos
+                 SET start = :start, end = :end, notas_reserva = :notas_reserva, estado_reserva = :estado_reserva
+                 WHERE id_evento = :id_evento AND id_cliente = :id_cliente'
+            )->execute(
+                array(
+                    ':start' => $startDate->format('Y-m-d H:i:s'),
+                    ':end' => $endDate->format('Y-m-d H:i:s'),
+                    ':notas_reserva' => $notas !== '' ? $notas : $event['notas_reserva'],
+                    ':estado_reserva' => $status !== '' ? $status : $event['estado_reserva'],
+                    ':id_evento' => $idEvento,
+                    ':id_cliente' => request_session_int('id_cliente'),
                 )
             );
 
@@ -148,7 +190,7 @@ try {
 
         case 'eliminar':
             require_csrf();
-            if (empty($_SESSION['id_professional']) && empty($_SESSION['id_admin'])) {
+            if (empty($_SESSION['id_professional']) && empty($_SESSION['id_admin']) && empty($_SESSION['id_cliente'])) {
                 throw new RuntimeException('No autorizado');
             }
             $idEvento = request_post_int('id_evento');
@@ -157,6 +199,9 @@ try {
                 throw new InvalidArgumentException('Reserva no encontrada');
             }
             if (!empty($_SESSION['id_professional']) && (int) $event['id_professional'] !== request_session_int('id_professional') && empty($_SESSION['id_admin'])) {
+                throw new RuntimeException('No puedes eliminar esa reserva');
+            }
+            if (!empty($_SESSION['id_cliente']) && (int) $event['id_cliente'] !== request_session_int('id_cliente') && empty($_SESSION['id_admin'])) {
                 throw new RuntimeException('No puedes eliminar esa reserva');
             }
 

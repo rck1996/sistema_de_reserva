@@ -37,10 +37,13 @@ $hours = business_hours();
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?php echo escape_html(app_brand_name()); ?></title>
-    <?php if ($brandFavicon !== ''): ?>
-        <link rel="icon" href="assets/branding/<?php echo escape_html($brandFavicon); ?>">
-    <?php endif; ?>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <?php render_shared_head_assets(
+        $theme,
+        array(
+            'favicon' => $brandFavicon,
+            'body_background' => 'radial-gradient(circle at top left, color-mix(in srgb, var(--primary) 18%, transparent), transparent 28%), radial-gradient(circle at top right, color-mix(in srgb, var(--accent) 16%, transparent), transparent 24%), linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%)',
+        )
+    ); ?>
     <script>
         tailwind.config = {
             theme: {
@@ -57,19 +60,6 @@ $hours = business_hours();
         };
     </script>
     <style>
-        :root {
-            --primary: <?php echo escape_html($theme['primary']); ?>;
-            --secondary: <?php echo escape_html($theme['secondary']); ?>;
-            --accent: <?php echo escape_html($theme['accent']); ?>;
-            --surface: <?php echo escape_html($theme['surface']); ?>;
-        }
-        html { scroll-behavior: smooth; }
-        body {
-            background:
-                radial-gradient(circle at top left, color-mix(in srgb, var(--primary) 18%, transparent), transparent 28%),
-                radial-gradient(circle at top right, color-mix(in srgb, var(--accent) 16%, transparent), transparent 24%),
-                linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
-        }
         .panel {
             background: rgba(255,255,255,0.82);
             backdrop-filter: blur(18px);
