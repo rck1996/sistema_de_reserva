@@ -19,18 +19,10 @@ if ($cliente === null) {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Editar cliente</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        :root {
-            --primary: <?php echo escape_html($theme['primary']); ?>;
-            --secondary: <?php echo escape_html($theme['secondary']); ?>;
-        }
-        body {
-            background: linear-gradient(180deg, #f8fafc 0%, #edf2f7 100%);
-        }
-    </style>
+    <?php render_shared_head_assets($theme, array('body_background' => 'linear-gradient(180deg, #f8fafc 0%, #edf2f7 100%)')); ?>
 </head>
 <body class="min-h-screen px-4 py-8 text-slate-900 sm:px-6">
+    <?php render_flash_messages(); ?>
     <main class="mx-auto max-w-4xl rounded-[2rem] border border-white/50 bg-white/85 p-6 shadow-2xl backdrop-blur-xl sm:p-8">
         <a class="text-sm font-medium text-slate-500 hover:text-slate-900" href="../admin-dashboard.php#clientes">← Volver</a>
         <h1 class="mt-4 text-3xl font-semibold">Editar cliente</h1>

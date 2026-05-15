@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+@layer base {
+  html {
+    overflow-x: hidden;
+  }
+
+  body {
+    font-feature-settings: "ss01" 1, "cv11" 1;
+    overflow-x: hidden;
+  }
+}
+
+@layer components {
+  .panel {
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(18px);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+  }
+
+  .shadow-panel {
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.16);
+  }
+
+  .shadow-soft {
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.10);
+  }
+
+  .app-shell {
+    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .surface-card {
+    @apply min-w-0 overflow-hidden rounded-[2rem] border border-white/50 bg-white/85 shadow-xl backdrop-blur-xl;
+  }
+
+  .surface-card-body {
+    @apply p-5 sm:p-6;
+  }
+
+  .stack-form {
+    @apply grid gap-4;
+  }
+
+  .field-input {
+    @apply mt-2 w-full min-w-0 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-slate-400;
+  }
+
+  .field-textarea {
+    @apply mt-2 min-h-24 w-full min-w-0 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-slate-400;
+  }
+
+  .dialog-shell {
+    @apply w-[min(96vw,48rem)] max-h-[90vh] overflow-hidden rounded-[2rem] border-0 p-0;
+  }
+
+  .dialog-body {
+    @apply max-h-[90vh] overflow-y-auto rounded-[2rem] bg-white p-6 shadow-2xl;
+  }
+
+  .chip-row {
+    @apply flex flex-wrap gap-2;
+  }
+
+  .auth-shell {
+    @apply mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8;
+  }
+
+  .auth-card {
+    @apply mx-auto w-full max-w-4xl min-w-0 overflow-hidden rounded-[2rem] border border-white/50 bg-white/85 p-5 shadow-xl backdrop-blur-xl sm:p-6;
+  }
+
+  .compact-back-link {
+    @apply text-sm font-medium text-slate-500 transition hover:text-slate-900;
+  }
+}

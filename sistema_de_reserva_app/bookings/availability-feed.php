@@ -20,4 +20,7 @@ $endRaw = trim((string) ($_GET['end'] ?? ''));
 $start = $startRaw !== '' ? new DateTimeImmutable($startRaw) : new DateTimeImmutable('today');
 $end = $endRaw !== '' ? new DateTimeImmutable($endRaw) : $start->modify('+30 days');
 
-echo json_encode(professional_availability_background_events($pdo, $professionalId, $start, $end));
+$events = professional_availability_background_events($pdo, $professionalId, $start, $end);
+$events = array_merge($events, holiday_background_events($pdo, $start, $end));
+
+echo json_encode($events);

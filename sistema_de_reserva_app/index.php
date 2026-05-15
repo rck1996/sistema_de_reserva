@@ -44,21 +44,6 @@ $hours = business_hours();
             'body_background' => 'radial-gradient(circle at top left, color-mix(in srgb, var(--primary) 18%, transparent), transparent 28%), radial-gradient(circle at top right, color-mix(in srgb, var(--accent) 16%, transparent), transparent 24%), linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%)',
         )
     ); ?>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    boxShadow: {
-                        panel: '0 24px 60px rgba(15, 23, 42, 0.16)',
-                        soft: '0 12px 32px rgba(15, 23, 42, 0.10)'
-                    },
-                    fontFamily: {
-                        sans: ['ui-sans-serif', 'system-ui', 'sans-serif']
-                    }
-                }
-            }
-        };
-    </script>
     <style>
         .panel {
             background: rgba(255,255,255,0.82);
@@ -68,8 +53,9 @@ $hours = business_hours();
     </style>
 </head>
 <body class="min-h-screen text-slate-900">
+    <?php render_flash_messages(); ?>
     <header class="sticky top-0 z-40 border-b border-white/40 bg-white/70 backdrop-blur-xl">
-        <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+        <div class="app-shell flex flex-wrap items-center justify-between gap-4 py-4">
             <a href="#inicio" class="flex items-center gap-3">
                 <?php if ($brandLogo !== ''): ?>
                     <img class="h-11 w-11 rounded-2xl object-cover shadow-soft" src="assets/branding/<?php echo escape_html($brandLogo); ?>" alt="<?php echo escape_html(app_brand_name()); ?>">
@@ -95,7 +81,7 @@ $hours = business_hours();
     </header>
 
     <main>
-        <section id="inicio" class="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.2fr_0.8fr] lg:px-8 lg:py-16">
+        <section id="inicio" class="app-shell grid gap-8 py-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:py-16">
             <div class="panel rounded-[2rem] p-6 shadow-panel sm:p-10">
                 <?php if ($brandCover !== ''): ?>
                     <div class="mb-6 overflow-hidden rounded-[1.5rem]">
@@ -145,7 +131,7 @@ $hours = business_hours();
             </div>
         </section>
 
-        <section id="disciplinas" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <section id="disciplinas" class="app-shell py-6">
             <div class="mb-6 flex flex-col gap-2">
                 <div class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Especialidades</div>
                 <h2 class="text-3xl font-semibold">Disciplinas listas para configurar</h2>
@@ -164,7 +150,7 @@ $hours = business_hours();
             </div>
         </section>
 
-        <section id="servicios" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <section id="servicios" class="app-shell py-6">
             <div class="mb-6 flex flex-col gap-2">
                 <div class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Catálogo</div>
                 <h2 class="text-3xl font-semibold">Servicios configurables y más visuales</h2>
@@ -195,7 +181,7 @@ $hours = business_hours();
             </div>
         </section>
 
-        <section id="profesionales" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <section id="profesionales" class="app-shell py-6">
             <div class="mb-6 flex flex-col gap-2">
                 <div class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Equipo</div>
                 <h2 class="text-3xl font-semibold">Profesionales visibles por especialidad</h2>
@@ -222,14 +208,14 @@ $hours = business_hours();
             </div>
         </section>
 
-        <section id="acceso" class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:pb-16">
+        <section id="acceso" class="app-shell py-8 lg:pb-16">
             <div class="mb-6 flex flex-col gap-2">
                 <div class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Acceso</div>
                 <h2 class="text-3xl font-semibold">Registro y acceso con una UX más clara</h2>
                 <p class="max-w-3xl text-slate-600">Alta rápida de clientes, acceso directo al panel y datos de contacto visibles sin saturar la pantalla.</p>
             </div>
-            <div class="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-                <section class="panel rounded-[2rem] p-6 shadow-panel sm:p-8">
+            <div class="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+                <section class="surface-card surface-card-body">
                     <div class="flex items-center justify-between gap-4">
                         <div>
                             <div class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Nuevo cliente</div>
@@ -240,16 +226,16 @@ $hours = business_hours();
                     <form action="auth.php" method="post" class="mt-6 grid gap-4 sm:grid-cols-2">
                         <?php echo csrf_input(); ?>
                         <label class="block text-sm font-medium text-slate-600">Nombre
-                            <input class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-slate-400" name="first_name" required>
+                            <input class="field-input" name="first_name" required>
                         </label>
                         <label class="block text-sm font-medium text-slate-600">Apellido
-                            <input class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-slate-400" name="last_name" required>
+                            <input class="field-input" name="last_name" required>
                         </label>
                         <label class="block text-sm font-medium text-slate-600">Telefono
-                            <input class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-slate-400" name="phone" placeholder="+56900000000" required>
+                            <input class="field-input" name="phone" placeholder="+56900000000" required>
                         </label>
                         <label class="block text-sm font-medium text-slate-600">Correo
-                            <input class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-slate-400" name="email" type="email" required>
+                            <input class="field-input" name="email" type="email" required>
                         </label>
                         <label class="block text-sm font-medium text-slate-600 sm:col-span-2">Usuario opcional
                             <input class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-slate-400" name="username" placeholder="Se genera automáticamente si lo dejas vacío">
@@ -264,16 +250,16 @@ $hours = business_hours();
                 </section>
 
                 <section class="grid gap-6">
-                    <div class="panel rounded-[2rem] p-6 shadow-panel sm:p-8">
+                    <div class="surface-card surface-card-body">
                         <div class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Ingreso cliente</div>
                         <h3 class="mt-2 text-2xl font-semibold">Entrar al panel</h3>
                         <form action="auth.php" method="post" class="mt-6 space-y-4">
                             <?php echo csrf_input(); ?>
                             <label class="block text-sm font-medium text-slate-600">Usuario
-                                <input class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-slate-400" name="username" required>
+                            <input class="field-input" name="username" required>
                             </label>
                             <label class="block text-sm font-medium text-slate-600">Contraseña
-                                <input class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-slate-400" name="password" type="password" required>
+                            <input class="field-input" name="password" type="password" required>
                             </label>
                             <button class="inline-flex w-full items-center justify-center rounded-2xl px-6 py-3 text-sm font-semibold text-white shadow-soft transition hover:opacity-95" style="background: linear-gradient(135deg, var(--accent), var(--primary));" type="submit" name="action" value="login-customer">
                                 Entrar al panel
@@ -284,14 +270,14 @@ $hours = business_hours();
                             <input type="hidden" name="action" value="request-password-reset">
                             <div class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Recuperar acceso</div>
                             <label class="block text-sm font-medium text-slate-600">Correo o usuario
-                                <input class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-slate-400" name="identity" required>
+                                <input class="field-input" name="identity" required>
                             </label>
                             <button class="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 px-6 py-3 text-sm font-semibold text-slate-900" type="submit">
                                 Generar enlace de recuperación
                             </button>
                         </form>
                     </div>
-                    <div class="panel rounded-[2rem] p-6 shadow-soft">
+                    <div class="surface-card surface-card-body">
                         <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-1">
                             <div>
                                 <div class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Contacto</div>

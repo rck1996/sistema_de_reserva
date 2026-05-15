@@ -43,6 +43,8 @@ Invoke-WebRequest -UseBasicParsing -Uri ($BaseUrl + "auth.php") -Method Post -We
 } | Out-Null
 $adminDashboard = Invoke-WebRequest -UseBasicParsing -Uri ($BaseUrl + "admin-dashboard.php") -WebSession $adminSession
 Assert-Status "Admin dashboard" $adminDashboard.StatusCode
+$exportCsv = Invoke-WebRequest -UseBasicParsing -Uri ($BaseUrl + "management/export.php?type=reservas&format=csv") -WebSession $adminSession
+Assert-Status "Export reservas CSV" $exportCsv.StatusCode
 
 $staffSession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
 $staffLogin = Invoke-WebRequest -UseBasicParsing -Uri ($BaseUrl + "staff-login.php") -WebSession $staffSession
@@ -91,7 +93,56 @@ conn = sqlite3.connect(sys.argv[1])
 cur = conn.cursor()
 service = cur.execute("select id_servicio from servicios where activo = 1 order by id_servicio limit 1").fetchone()
 professional = cur.execute("select id_professional from professionals where activo = 1 order by id_professional limit 1").fetchone()
-print(json.dumps({"service_id": service[0] if service else 0, "professional_id": professional[0] if professional else 0}))
+if not service or not professional:
+    print(json.dumps({"service_id": 0, "professional_id": 0}))
+    raise SystemExit
+
+professional_id = professional[0]
+service_id = service[0]
+duration = cur.execute("select duracion_minutos from servicios where id_servicio = ?", (service_id,)).fetchone()[0]
+from datetime import datetime, timedelta
+
+def free_window(day, start_hm, minutes):
+    start = f"{day} {start_hm}:00"
+    start_dt = datetime.strptime(start, "%Y-%m-%d %H:%M:%S")
+    end_dt = start_dt + timedelta(minutes=minutes)
+    end = end_dt.strftime("%Y-%m-%d %H:%M:%S")
+    busy = cur.execute(
+        """
+        select count(*) from eventos
+        where id_professional = ?
+          and estado_reserva != 'cancelada'
+          and start < ?
+          and end > ?
+        """,
+        (professional_id, end, start),
+    ).fetchone()[0]
+    return busy == 0
+
+today = datetime.now().date()
+reservation_day = None
+for offset in range(20, 180):
+    candidate = today + timedelta(days=offset)
+    weekday = int(candidate.strftime("%w"))
+    schedule = cur.execute(
+        "select is_working from professional_availability where id_professional = ? and weekday = ?",
+        (professional_id, weekday),
+    ).fetchone()
+    if schedule and schedule[0] == 1 and free_window(candidate.isoformat(), "15:30", duration) and free_window(candidate.isoformat(), "16:30", 60):
+        reservation_day = candidate.isoformat()
+        break
+
+if reservation_day is None:
+    raise RuntimeError("No free smoke-test slot found")
+
+print(json.dumps({
+    "service_id": service_id,
+    "professional_id": professional_id,
+    "reservation_day": reservation_day,
+    "reservation_hour": "15:30",
+    "edit_hour": "16:30",
+    "edit_end_hour": "17:30"
+}))
 '@ | python - $dbPath
 $idData = $idPayload | ConvertFrom-Json
 $serviceId = [string]$idData.service_id
@@ -99,16 +150,25 @@ $professionalId = [string]$idData.professional_id
 if ($serviceId -eq "0" -or $professionalId -eq "0") {
     throw "No se pudieron obtener IDs demo desde SQLite."
 }
+$reservationDay = [datetime]::ParseExact([string]$idData.reservation_day, "yyyy-MM-dd", $null)
+$reservationHour = [string]$idData.reservation_hour
+$editHour = [string]$idData.edit_hour
+$editEndHour = [string]$idData.edit_end_hour
 
-$reservationResponse = Invoke-WebRequest -UseBasicParsing -Uri ($BaseUrl + "bookings/api.php?accion=agendar_customer") -Method Post -WebSession $customerSession -Headers @{ "X-CSRF-Token" = $loginCsrf } -Body @{
-    csrf_token = $loginCsrf
-    professional_id = $professionalId
-    id_servicio = $serviceId
-    dia = (Get-Date).AddDays(14).ToString("yyyy-MM-dd")
-    hora = "16:00"
-    notas_reserva = "Reserva smoke"
+try {
+    $reservationResponse = Invoke-WebRequest -UseBasicParsing -Uri ($BaseUrl + "bookings/api.php?accion=agendar_customer") -Method Post -WebSession $customerSession -Headers @{ "X-CSRF-Token" = $loginCsrf } -Body @{
+        csrf_token = $loginCsrf
+        professional_id = $professionalId
+        id_servicio = $serviceId
+        dia = $reservationDay.ToString("yyyy-MM-dd")
+        hora = $reservationHour
+        notas_reserva = "Reserva smoke"
+    }
+    $reservationData = $reservationResponse.Content | ConvertFrom-Json
+} catch {
+    $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
+    throw ("Reservation error: " + $reader.ReadToEnd())
 }
-$reservationData = $reservationResponse.Content | ConvertFrom-Json
 if (-not $reservationData.ok -or -not $reservationData.id_evento) {
     throw "No se pudo crear la reserva de humo."
 }
@@ -116,14 +176,36 @@ if (-not $reservationData.ok -or -not $reservationData.id_evento) {
 $editResponse = Invoke-WebRequest -UseBasicParsing -Uri ($BaseUrl + "bookings/api.php?accion=update_event_customer") -Method Post -WebSession $customerSession -Headers @{ "X-CSRF-Token" = $loginCsrf } -Body @{
     csrf_token = $loginCsrf
     id_evento = $reservationData.id_evento
-    start = (Get-Date).AddDays(14).Date.AddHours(17).ToString("s")
-    end = (Get-Date).AddDays(14).Date.AddHours(17).AddMinutes(30).ToString("s")
+    start = ($reservationDay.ToString("yyyy-MM-dd") + "T" + $editHour + ":00")
+    end = ($reservationDay.ToString("yyyy-MM-dd") + "T" + $editEndHour + ":00")
     estado_reserva = "confirmada"
     notas_reserva = "Reserva smoke reprogramada"
 }
 $editData = $editResponse.Content | ConvertFrom-Json
 if (-not $editData.ok) {
     throw "No se pudo editar la reserva de humo."
+}
+
+try {
+    $waitlistResponse = Invoke-WebRequest -UseBasicParsing -Uri ($BaseUrl + "bookings/api.php?accion=agendar_customer") -Method Post -WebSession $customerSession -Headers @{ "X-CSRF-Token" = $loginCsrf } -Body @{
+        csrf_token = $loginCsrf
+        professional_id = $professionalId
+        id_servicio = $serviceId
+        dia = $reservationDay.ToString("yyyy-MM-dd")
+        hora = $editHour
+        notas_reserva = "Reserva smoke en espera"
+        waitlist_on_failure = "1"
+    }
+    $waitlistData = $waitlistResponse.Content | ConvertFrom-Json
+} catch {
+    $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
+    throw ("Waitlist error: " + $reader.ReadToEnd())
+}
+if (-not $waitlistData.ok) {
+    throw "No se pudo crear o enviar la solicitud a lista de espera."
+}
+if (-not $waitlistData.waitlist) {
+    throw "Se esperaba una entrada de lista de espera para el segundo intento."
 }
 
 $feed = Invoke-WebRequest -UseBasicParsing -Uri ($BaseUrl + "bookings/public-feed.php")

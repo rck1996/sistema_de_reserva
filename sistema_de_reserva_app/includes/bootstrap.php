@@ -3,7 +3,11 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/migrations.php';
+require_once __DIR__ . '/operations.php';
 require_once __DIR__ . '/view.php';
+
+load_env_file(dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . '.env');
+date_default_timezone_set((string) (getenv('APP_TIMEZONE') ?: 'America/Santiago'));
 
 configure_session_security();
 
@@ -155,6 +159,16 @@ function initialize_database(PDO $pdo): void
     );
 
     $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS professional_disciplines (
+            id_professional INTEGER NOT NULL,
+            id_disciplina INTEGER NOT NULL,
+            PRIMARY KEY (id_professional, id_disciplina),
+            FOREIGN KEY (id_professional) REFERENCES professionals(id_professional) ON DELETE CASCADE,
+            FOREIGN KEY (id_disciplina) REFERENCES disciplinas(id_disciplina) ON DELETE CASCADE
+        )'
+    );
+
+    $pdo->exec(
         'CREATE TABLE IF NOT EXISTS clientes (
             id_cliente INTEGER PRIMARY KEY AUTOINCREMENT,
             nombre_cliente TEXT NOT NULL,
@@ -183,6 +197,16 @@ function initialize_database(PDO $pdo): void
             textColor TEXT NOT NULL,
             activo INTEGER NOT NULL DEFAULT 1,
             FOREIGN KEY (id_disciplina) REFERENCES disciplinas(id_disciplina) ON DELETE SET NULL
+        )'
+    );
+
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS professional_services (
+            id_professional INTEGER NOT NULL,
+            id_servicio INTEGER NOT NULL,
+            PRIMARY KEY (id_professional, id_servicio),
+            FOREIGN KEY (id_professional) REFERENCES professionals(id_professional) ON DELETE CASCADE,
+            FOREIGN KEY (id_servicio) REFERENCES servicios(id_servicio) ON DELETE CASCADE
         )'
     );
 
@@ -258,6 +282,19 @@ function initialize_database(PDO $pdo): void
         'closing_time' => '20:00',
         'slot_interval' => '30',
         'booking_notice' => 'Selecciona disciplina, servicio, profesional y horario disponible.',
+        'global_buffer_min' => '0',
+        'reminder_hours_before' => '24',
+        'notifications_email_enabled' => '1',
+        'notifications_whatsapp_enabled' => '0',
+        'notifications_send_email' => '0',
+        'smtp_from_name' => 'Sistema de Reserva',
+        'smtp_from_email' => 'notificaciones@sistema.local',
+        'smtp_host' => '',
+        'smtp_port' => '587',
+        'smtp_username' => '',
+        'smtp_password' => '',
+        'smtp_encryption' => 'tls',
+        'app_timezone' => 'America/Santiago',
     );
 
     $settingStmt = $pdo->prepare('INSERT OR IGNORE INTO configuracion (clave, valor) VALUES (:clave, :valor)');
@@ -294,9 +331,10 @@ function initialize_database(PDO $pdo): void
             );
     }
 
+    run_registered_migrations($pdo);
     seed_demo_content($pdo);
     ensure_professional_schedules_seeded($pdo);
-    run_registered_migrations($pdo);
+    ensure_professional_assignments_seeded($pdo);
 
     $initialized = true;
 }
@@ -322,6 +360,10 @@ function migrate_legacy_schema(PDO $pdo): void
     ensure_column_exists($pdo, 'professionals', 'calendar_color', 'TEXT NOT NULL DEFAULT "#0f172a"');
     ensure_column_exists($pdo, 'professionals', 'id_disciplina', 'INTEGER');
     ensure_column_exists($pdo, 'professionals', 'activo', 'INTEGER NOT NULL DEFAULT 1');
+    ensure_column_exists($pdo, 'professionals', 'booking_capacity', 'INTEGER NOT NULL DEFAULT 1');
+    ensure_column_exists($pdo, 'professionals', 'accepts_waitlist', 'INTEGER NOT NULL DEFAULT 1');
+    ensure_column_exists($pdo, 'professionals', 'notification_email', 'TEXT NOT NULL DEFAULT ""');
+    ensure_column_exists($pdo, 'professionals', 'notification_whatsapp', 'TEXT NOT NULL DEFAULT ""');
 
     if (table_exists($pdo, 'peluqueros') && table_exists($pdo, 'professionals')) {
         $legacyCount = (int) $pdo->query('SELECT COUNT(*) FROM peluqueros')->fetchColumn();
@@ -342,6 +384,9 @@ function migrate_legacy_schema(PDO $pdo): void
     ensure_column_exists($pdo, 'servicios', 'duracion_minutos', 'INTEGER NOT NULL DEFAULT 60');
     ensure_column_exists($pdo, 'servicios', 'modalidad_servicio', 'TEXT NOT NULL DEFAULT "Presencial"');
     ensure_column_exists($pdo, 'servicios', 'activo', 'INTEGER NOT NULL DEFAULT 1');
+    ensure_column_exists($pdo, 'servicios', 'buffer_before_min', 'INTEGER NOT NULL DEFAULT 0');
+    ensure_column_exists($pdo, 'servicios', 'buffer_after_min', 'INTEGER NOT NULL DEFAULT 0');
+    ensure_column_exists($pdo, 'servicios', 'allows_parallel', 'INTEGER NOT NULL DEFAULT 0');
 
     rename_column_if_exists($pdo, 'eventos', 'id_peluquero', 'id_professional');
     ensure_column_exists($pdo, 'eventos', 'estado_reserva', 'TEXT NOT NULL DEFAULT "confirmada"');
@@ -521,6 +566,31 @@ function request_session_int(string $key): int
     return (int) $value;
 }
 
+function load_env_file(string $path): void
+{
+    if (!is_file($path)) {
+        return;
+    }
+
+    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if ($lines === false) {
+        return;
+    }
+
+    foreach ($lines as $line) {
+        $trimmed = trim($line);
+        if ($trimmed === '' || str_starts_with($trimmed, '#') || !str_contains($trimmed, '=')) {
+            continue;
+        }
+        [$key, $value] = array_map('trim', explode('=', $trimmed, 2));
+        if ($key === '') {
+            continue;
+        }
+        putenv($key . '=' . $value);
+        $_ENV[$key] = $value;
+    }
+}
+
 function validate_email_address(string $email): string
 {
     $validated = filter_var($email, FILTER_VALIDATE_EMAIL);
@@ -628,10 +698,9 @@ function is_password_hash(string $value): bool
 function app_redirect(string $path, string $message = ''): void
 {
     if ($message !== '') {
-        echo "<script>alert(" . json_encode($message, JSON_UNESCAPED_UNICODE) . ")</script>";
+        flash_message('info', $message);
     }
-
-    echo "<script>location.href=" . json_encode($path) . "</script>";
+    header('Location: ' . $path);
     exit;
 }
 
@@ -648,9 +717,30 @@ function escape_html(?string $value): string
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 }
 
+function flash_message(string $type, string $message): void
+{
+    if (!isset($_SESSION['flash_messages']) || !is_array($_SESSION['flash_messages'])) {
+        $_SESSION['flash_messages'] = array();
+    }
+    $_SESSION['flash_messages'][] = array(
+        'type' => $type,
+        'message' => $message,
+    );
+}
+
+function consume_flash_messages(): array
+{
+    $messages = $_SESSION['flash_messages'] ?? array();
+    unset($_SESSION['flash_messages']);
+
+    return is_array($messages) ? $messages : array();
+}
+
 function handle_app_exception(Throwable $exception, string $redirect): void
 {
-    app_redirect($redirect, $exception->getMessage());
+    flash_message('error', $exception->getMessage());
+    header('Location: ' . $redirect);
+    exit;
 }
 
 function save_service_image(array $file, ?string $currentImage = null): string
@@ -798,6 +888,50 @@ function ensure_professional_schedules_seeded(PDO $pdo): void
     }
 }
 
+function ensure_professional_assignments_seeded(PDO $pdo): void
+{
+    $pdo->exec(
+        'INSERT OR IGNORE INTO professional_disciplines (id_professional, id_disciplina)
+         SELECT id_professional, id_disciplina
+         FROM professionals
+         WHERE id_disciplina IS NOT NULL'
+    );
+
+    $pdo->exec(
+        'INSERT OR IGNORE INTO professional_services (id_professional, id_servicio)
+         SELECT pd.id_professional, s.id_servicio
+         FROM professional_disciplines pd
+         JOIN servicios s ON s.id_disciplina = pd.id_disciplina
+         WHERE s.activo = 1'
+    );
+}
+
+function professional_service_ids(PDO $pdo, int $professionalId): array
+{
+    $rows = fetch_all(
+        $pdo->prepare('SELECT id_servicio FROM professional_services WHERE id_professional = :id_professional'),
+        array(':id_professional' => $professionalId)
+    );
+
+    return array_map(static fn (array $row): int => (int) $row['id_servicio'], $rows);
+}
+
+function professional_can_perform_service(PDO $pdo, int $professionalId, int $serviceId): bool
+{
+    ensure_professional_assignments_seeded($pdo);
+    $stmt = $pdo->prepare(
+        'SELECT COUNT(*)
+         FROM professional_services ps
+         JOIN servicios s ON s.id_servicio = ps.id_servicio
+         WHERE ps.id_professional = :id_professional
+           AND ps.id_servicio = :id_servicio
+           AND s.activo = 1'
+    );
+    $stmt->execute(array(':id_professional' => $professionalId, ':id_servicio' => $serviceId));
+
+    return (int) $stmt->fetchColumn() > 0;
+}
+
 function professional_weekly_schedule(PDO $pdo, int $professionalId): array
 {
     ensure_professional_schedule_rows($pdo, $professionalId);
@@ -923,11 +1057,8 @@ function professional_availability_background_events(PDO $pdo, int $professional
 
 function service_duration_minutes(PDO $pdo, int $serviceId): int
 {
-    $row = fetch_one($pdo->prepare('SELECT duracion_minutos FROM servicios WHERE id_servicio = :id_servicio'), array(':id_servicio' => $serviceId));
-    if ($row === null) {
-        throw new InvalidArgumentException('Servicio no encontrado');
-    }
-    return max(15, (int) $row['duracion_minutos']);
+    $policy = service_booking_policy($pdo, $serviceId);
+    return $policy['duracion_minutos'];
 }
 
 function calculate_event_end(string $start, int $durationMinutes): string
@@ -935,22 +1066,52 @@ function calculate_event_end(string $start, int $durationMinutes): string
     return (new DateTimeImmutable($start))->modify('+' . $durationMinutes . ' minutes')->format('Y-m-d H:i:s');
 }
 
-function ensure_slot_available(PDO $pdo, int $professionalId, string $start, string $end, ?int $excludeEventId = null): void
+function ensure_slot_available(PDO $pdo, int $professionalId, string $start, string $end, ?int $excludeEventId = null, ?int $serviceId = null): void
 {
     $professional = fetch_one(
-        $pdo->prepare('SELECT activo FROM professionals WHERE id_professional = :id_professional'),
+        $pdo->prepare('SELECT activo, booking_capacity, accepts_waitlist, id_disciplina FROM professionals WHERE id_professional = :id_professional'),
         array(':id_professional' => $professionalId)
     );
     if ($professional === null || (int) $professional['activo'] !== 1) {
         throw new InvalidArgumentException('El profesional no esta disponible');
     }
 
+    if ($serviceId !== null && $serviceId > 0) {
+        $service = fetch_one(
+            $pdo->prepare('SELECT id_servicio, id_disciplina, nombre_servicio FROM servicios WHERE id_servicio = :id_servicio AND activo = 1'),
+            array(':id_servicio' => $serviceId)
+        );
+        if ($service === null) {
+            throw new InvalidArgumentException('El servicio no esta disponible');
+        }
+        if (!professional_can_perform_service($pdo, $professionalId, (int) $service['id_servicio'])) {
+            throw new InvalidArgumentException('El profesional seleccionado no realiza este servicio');
+        }
+    }
+
     $startDate = new DateTimeImmutable($start);
     $endDate = new DateTimeImmutable($end);
     $window = current_professional_window($pdo, $professionalId, $startDate);
+    $holiday = global_holiday_for_date($pdo, $startDate->format('Y-m-d'));
 
     if ($window === null) {
         throw new InvalidArgumentException('El profesional no atiende en esa fecha');
+    }
+
+    if ($holiday !== null) {
+        if ((int) ($holiday['is_closed'] ?? 1) === 1) {
+            throw new InvalidArgumentException('La fecha corresponde a un feriado o cierre global');
+        }
+
+        $holidayStart = trim((string) ($holiday['start_time'] ?? ''));
+        $holidayEnd = trim((string) ($holiday['end_time'] ?? ''));
+        if ($holidayStart !== '' && $holidayEnd !== '') {
+            $slotStart = $startDate->format('H:i');
+            $slotEnd = $endDate->format('H:i');
+            if ($slotStart < $holidayEnd && $slotEnd > $holidayStart) {
+                throw new InvalidArgumentException('La reserva cruza un bloqueo global del calendario');
+            }
+        }
     }
 
     $slotInterval = max(5, (int) ($window['slot_interval'] ?? setting_value('slot_interval', '30')));
@@ -970,28 +1131,28 @@ function ensure_slot_available(PDO $pdo, int $professionalId, string $start, str
         }
     }
 
-    $sql = 'SELECT COUNT(*) FROM eventos
-            WHERE id_professional = :id_professional
-              AND estado_reserva != "cancelada"
-              AND start < :end
-              AND COALESCE(end, datetime(start, "+60 minutes")) > :start';
-
-    $params = array(
-        ':id_professional' => $professionalId,
-        ':start' => $start,
-        ':end' => $end,
-    );
-
-    if ($excludeEventId !== null) {
-        $sql .= ' AND id_evento != :id_evento';
-        $params[':id_evento'] = $excludeEventId;
+    $globalBuffer = max(0, (int) setting_value('global_buffer_min', '0'));
+    $targetStart = $startDate;
+    $targetEnd = $endDate;
+    if ($serviceId !== null && $serviceId > 0) {
+        $policy = service_booking_policy($pdo, $serviceId);
+        $targetStart = $targetStart->modify('-' . ($globalBuffer + $policy['buffer_before_min']) . ' minutes');
+        $targetEnd = $targetEnd->modify('+' . ($globalBuffer + $policy['buffer_after_min']) . ' minutes');
+    } elseif ($globalBuffer > 0) {
+        $targetStart = $targetStart->modify('-' . $globalBuffer . ' minutes');
+        $targetEnd = $targetEnd->modify('+' . $globalBuffer . ' minutes');
     }
 
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
+    $overlaps = overlapping_bookings($pdo, $professionalId, $targetStart->format('Y-m-d H:i:s'), $targetEnd->format('Y-m-d H:i:s'), $excludeEventId);
+    if ($serviceId === null || $serviceId <= 0) {
+        if ($overlaps !== array()) {
+            throw new InvalidArgumentException('Ese profesional ya tiene una reserva en ese rango horario');
+        }
+        return;
+    }
 
-    if ((int) $stmt->fetchColumn() > 0) {
-        throw new InvalidArgumentException('Ese profesional ya tiene una reserva en ese rango horario');
+    if (!can_book_parallel($pdo, $professionalId, $serviceId, $overlaps)) {
+        throw new InvalidArgumentException('No hay capacidad disponible para ese horario con este profesional');
     }
 }
 
@@ -1170,7 +1331,8 @@ function seed_demo_content(PDO $pdo): void
         $demoEvents = array(
             array('tomorrow 10:00', (int) $professionalIds[0], (int) $clientIds[0], (int) $serviceIds[0], 'confirmada', 'Reserva demo para mostrar un bloque confirmado.'),
             array('tomorrow 15:00', (int) ($professionalIds[1] ?? $professionalIds[0]), (int) ($clientIds[1] ?? $clientIds[0]), (int) ($serviceIds[1] ?? $serviceIds[0]), 'pendiente', 'Reserva demo pendiente para pruebas de filtros.'),
-            array('tomorrow +2 days 11:30', (int) ($professionalIds[2] ?? $professionalIds[0]), (int) ($clientIds[2] ?? $clientIds[0]), (int) ($serviceIds[2] ?? $serviceIds[0]), 'confirmada', 'Reserva demo corta para mostrar reprogramacion.'),
+            array('tomorrow +2 days 11:30', (int) ($professionalIds[2] ?? $professionalIds[0]), (int) ($clientIds[2] ?? $clientIds[0]), (int) ($serviceIds[2] ?? $serviceIds[0]), 'en_progreso', 'Reserva demo corta para mostrar reprogramacion.'),
+            array('tomorrow +3 days 09:30', (int) ($professionalIds[0] ?? $professionalIds[0]), (int) ($clientIds[1] ?? $clientIds[0]), (int) ($serviceIds[0] ?? $serviceIds[0]), 'completada', 'Reserva demo historica para metricas.'),
         );
 
         $eventStmt = $pdo->prepare(
@@ -1205,6 +1367,20 @@ function seed_demo_content(PDO $pdo): void
                 ':start_time' => '11:00',
                 ':end_time' => '17:00',
                 ':notes' => 'Horario especial demo',
+            )
+        );
+
+        $pdo->prepare(
+            'INSERT OR IGNORE INTO global_holidays (holiday_date, holiday_name, is_closed, start_time, end_time, notes)
+             VALUES (:holiday_date, :holiday_name, :is_closed, :start_time, :end_time, :notes)'
+        )->execute(
+            array(
+                ':holiday_date' => (new DateTimeImmutable('tomorrow +5 days'))->format('Y-m-d'),
+                ':holiday_name' => 'Bloqueo operativo demo',
+                ':is_closed' => 0,
+                ':start_time' => '12:00',
+                ':end_time' => '15:00',
+                ':notes' => 'Bloque de mantenimiento para mostrar feriados parciales.',
             )
         );
     }

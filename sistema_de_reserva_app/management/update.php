@@ -23,6 +23,8 @@ try {
             $newPassword = request_post_string('pass_professional', false);
             $disciplina = request_post_string('id_disciplina', false);
             $activo = request_post_string('activo', false) === '0' ? 0 : 1;
+            $bookingCapacity = max(1, request_post_int('booking_capacity', false) ?: 1);
+            $acceptsWaitlist = request_post_string('accepts_waitlist', false) === '0' ? 0 : 1;
 
             ensure_unique_value($pdo, 'professionals', 'user_professional', $usuario, $id, 'id_professional');
             ensure_unique_value($pdo, 'professionals', 'email_professional', $email, $id, 'id_professional');
@@ -38,7 +40,9 @@ try {
                 'UPDATE professionals
                  SET user_professional = :usuario, pass_professional = :password, name_professional = :nombre,
                      email_professional = :email, phone_professional = :telefono, bio_professional = :bio,
-                     calendar_color = :color, id_disciplina = :id_disciplina, activo = :activo
+                     calendar_color = :color, id_disciplina = :id_disciplina, activo = :activo,
+                     booking_capacity = :booking_capacity, accepts_waitlist = :accepts_waitlist,
+                     notification_email = :notification_email, notification_whatsapp = :notification_whatsapp
                  WHERE id_professional = :id'
             )->execute(
                 array(
@@ -51,10 +55,36 @@ try {
                     ':color' => $color,
                     ':id_disciplina' => $disciplina === '' ? null : (int) $disciplina,
                     ':activo' => $activo,
+                    ':booking_capacity' => $bookingCapacity,
+                    ':accepts_waitlist' => $acceptsWaitlist,
+                    ':notification_email' => $email,
+                    ':notification_whatsapp' => $telefono,
                     ':id' => $id,
                 )
             );
 
+            $disciplineIds = array_values(array_unique(array_map('intval', (array) ($_POST['discipline_ids'] ?? array()))));
+            if ($disciplina !== '' && !in_array((int) $disciplina, $disciplineIds, true)) {
+                $disciplineIds[] = (int) $disciplina;
+            }
+            $pdo->prepare('DELETE FROM professional_disciplines WHERE id_professional = :id')->execute(array(':id' => $id));
+            $disciplineStmt = $pdo->prepare('INSERT OR IGNORE INTO professional_disciplines (id_professional, id_disciplina) VALUES (:id_professional, :id_disciplina)');
+            foreach ($disciplineIds as $disciplineId) {
+                if ($disciplineId > 0) {
+                    $disciplineStmt->execute(array(':id_professional' => $id, ':id_disciplina' => $disciplineId));
+                }
+            }
+
+            $serviceIds = array_values(array_unique(array_map('intval', (array) ($_POST['service_ids'] ?? array()))));
+            $pdo->prepare('DELETE FROM professional_services WHERE id_professional = :id')->execute(array(':id' => $id));
+            $serviceStmt = $pdo->prepare('INSERT OR IGNORE INTO professional_services (id_professional, id_servicio) VALUES (:id_professional, :id_servicio)');
+            foreach ($serviceIds as $serviceId) {
+                if ($serviceId > 0) {
+                    $serviceStmt->execute(array(':id_professional' => $id, ':id_servicio' => $serviceId));
+                }
+            }
+
+            audit_log($pdo, 'professional', $id, 'updated', 'Profesional actualizado');
             app_redirect('../admin-dashboard.php#profesionales', 'Profesional actualizado');
             break;
 
@@ -115,6 +145,7 @@ try {
                 );
             }
 
+            audit_log($pdo, 'professional_schedule', $id, 'updated', 'Disponibilidad profesional actualizada');
             app_redirect('../management/professional-edit.php?id_professional=' . $id, 'Disponibilidad actualizada');
             break;
 
@@ -156,6 +187,7 @@ try {
                 )
             );
 
+            audit_log($pdo, 'customer', $id, 'updated', 'Cliente actualizado');
             app_redirect('../admin-dashboard.php#clientes', 'Cliente actualizado');
             break;
 
@@ -174,6 +206,7 @@ try {
                     ':id' => $id,
                 )
             );
+            audit_log($pdo, 'discipline', $id, 'updated', 'Disciplina actualizada');
             app_redirect('../admin-dashboard.php#disciplinas', 'Disciplina actualizada');
             break;
 
@@ -190,7 +223,8 @@ try {
                 'UPDATE servicios
                  SET id_disciplina = :id_disciplina, nombre_servicio = :nombre, descripcion_servicio = :descripcion,
                      precio_servicio = :precio, duracion_minutos = :duracion, modalidad_servicio = :modalidad,
-                     img_servicio = :imagen, color = :color, textColor = :textColor, activo = :activo
+                     img_servicio = :imagen, color = :color, textColor = :textColor, activo = :activo,
+                     buffer_before_min = :buffer_before_min, buffer_after_min = :buffer_after_min, allows_parallel = :allows_parallel
                  WHERE id_servicio = :id'
             )->execute(
                 array(
@@ -204,10 +238,14 @@ try {
                     ':color' => validate_color(request_post_string('color')),
                     ':textColor' => validate_color(request_post_string('textColor')),
                     ':activo' => request_post_string('activo', false) === '0' ? 0 : 1,
+                    ':buffer_before_min' => max(0, request_post_int('buffer_before_min', false)),
+                    ':buffer_after_min' => max(0, request_post_int('buffer_after_min', false)),
+                    ':allows_parallel' => request_post_string('allows_parallel', false) === '1' ? 1 : 0,
                     ':id' => $id,
                 )
             );
 
+            audit_log($pdo, 'service', $id, 'updated', 'Servicio actualizado');
             app_redirect('../admin-dashboard.php#servicios', 'Servicio actualizado');
             break;
 
@@ -219,7 +257,7 @@ try {
             $start = validate_datetime_slot(request_post_string('dia'), request_post_string('hora'));
             $duration = service_duration_minutes($pdo, $idServicio);
             $end = calculate_event_end($start, $duration);
-            ensure_slot_available($pdo, $idProfessional, $start, $end, $id);
+            ensure_slot_available($pdo, $idProfessional, $start, $end, $id, $idServicio);
 
             $pdo->prepare(
                 'UPDATE eventos
@@ -234,11 +272,14 @@ try {
                     ':start' => $start,
                     ':end' => $end,
                     ':notas' => request_post_string('notas_reserva', false),
-                    ':estado' => request_post_string('estado_reserva', false) ?: 'confirmada',
+                    ':estado' => validate_reservation_status(request_post_string('estado_reserva', false)),
                     ':id_evento' => $id,
                 )
             );
 
+            audit_log($pdo, 'booking', $id, 'updated', 'Reserva actualizada desde administracion');
+            queue_event_notifications($pdo, $id, 'actualizacion');
+            dispatch_notification_queue($pdo);
             app_redirect('../admin-dashboard.php#reservas', 'Reserva actualizada');
             break;
 

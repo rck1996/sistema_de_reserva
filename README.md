@@ -1,6 +1,6 @@
 # sistema_de_reserva
 
-Sistema web de reservas multidisciplinario, configurable y desacoplado de una industria especifica. La aplicacion permite operar agendas, clientes, profesionales, servicios y branding desde una sola plataforma, usando PHP + SQLite y una interfaz moderna basada en Tailwind CSS y FullCalendar.
+Sistema web de reservas multidisciplinario, configurable y desacoplado de una industria especifica. La aplicacion permite operar agendas, clientes, profesionales, servicios y branding desde una sola plataforma, usando PHP + SQLite y una interfaz moderna basada en Tailwind CSS compilado localmente y FullCalendar.
 
 ## Resumen
 
@@ -30,12 +30,14 @@ No esta limitado a peluqueria. Puede adaptarse a centros de bienestar, asesoria,
 
 - login propio
 - panel personal con agenda visual
-- creacion de reservas
+- wizard guiado de reserva
+- creacion de reservas con lista de espera automatica si no hay cupo
 - reprogramacion inline desde modal
 - cancelacion inline desde modal
 - visualizacion de disponibilidad por profesional
 - edicion de perfil
 - historial visible de reservas proximas
+- lectura de estados ampliados: pendiente, confirmada, en progreso, completada, no asistio y cancelada
 
 ### Profesional
 
@@ -50,6 +52,7 @@ No esta limitado a peluqueria. Puede adaptarse a centros de bienestar, asesoria,
 - filtros por estado, servicio y tipo de vista
 - visualizacion de bloques no laborables, pausas y excepciones
 - edicion de perfil
+- soporte para cupos simultaneos por profesional segun capacidad configurada
 
 ### Administracion
 
@@ -63,11 +66,17 @@ No esta limitado a peluqueria. Puede adaptarse a centros de bienestar, asesoria,
 - gestion de profesionales
 - gestion de servicios
 - gestion de disciplinas
+- gestion de feriados y bloqueos globales
 - busqueda en listados de clientes, profesionales y servicios
 - previews de branding
 - configuracion de horarios de apertura y cierre
 - configuracion del intervalo de agenda
 - configuracion de nombre interno, nombre visible, portada, logo, favicon y datos de contacto
+- metricas reales de agenda
+- exportacion CSV y PDF de reservas y clientes
+- backup y restauracion de SQLite
+- cola de notificaciones y bitacora de auditoria
+- lista de espera visible desde administracion
 
 ## Disponibilidad y reglas de reserva
 
@@ -78,9 +87,13 @@ El sistema no solo agenda por hora exacta. Tambien valida:
 - pausas internas del profesional
 - excepciones por fecha
 - dias no laborables
+- bloqueos o feriados globales
 - profesional activo o inactivo
 - duracion real del servicio
 - intervalo minimo de agenda
+- buffers antes y despues por servicio
+- capacidad simultanea por profesional
+- servicios exclusivos o paralelos segun configuracion
 
 Ademas, parte de esa informacion ahora se ve visualmente en calendario:
 
@@ -99,6 +112,7 @@ Ademas, parte de esa informacion ahora se ve visualmente en calendario:
 - validacion de correo, telefono, colores, fechas y horarios
 - validacion de subida de imagenes por extension y MIME
 - tokens de recuperacion de contrasena
+- auditoria de acciones operativas en base
 
 ## Branding y personalizacion
 
@@ -112,11 +126,16 @@ Desde administracion se puede configurar:
 - correo, telefono, direccion y ciudad
 - horario de apertura y cierre
 - intervalo base de agenda
+- buffer global entre reservas
+- recordatorios en horas antes de la reserva
 - mensaje de reserva
 - logo
 - favicon
 - imagen de portada
 - colores del sistema
+- canal email y WhatsApp para notificaciones
+- remitente de correo y timezone operativa
+- host, puerto, usuario, clave y cifrado SMTP
 
 Si no se sube favicon, la app usa uno por defecto para evitar errores 404 en navegacion.
 
@@ -129,7 +148,9 @@ La base que va versionada en el repositorio incluye una demo util para revision:
 - clientes demo
 - servicios demo
 - reservas confirmadas y pendientes
+- reservas en progreso y completadas
 - excepciones de horario demo
+- bloqueo global demo
 
 Esto permite revisar el flujo completo sin partir desde cero.
 
@@ -168,13 +189,14 @@ Nota:
 
 - PHP 8.3
 - SQLite
-- Tailwind CSS por CDN
+- Tailwind CSS compilado en `assets/styles/app.css`
 - FullCalendar 6 por CDN
 
 ### Estructura principal
 
 - `sistema_de_reserva_app/`
 - `sistema_de_reserva_app/assets/`
+- `sistema_de_reserva_app/assets/styles/`
 - `sistema_de_reserva_app/assets/services/`
 - `sistema_de_reserva_app/assets/branding/`
 - `sistema_de_reserva_app/bookings/`
@@ -190,6 +212,8 @@ Nota:
 
 - `sistema_de_reserva_app/includes/bootstrap.php`
   Inicializacion, helpers de dominio, validaciones y compatibilidad de datos heredados.
+- `sistema_de_reserva_app/includes/operations.php`
+  Reglas operativas: estados, waitlist, notificaciones, SMTP, exportes, backups y auditoria.
 - `sistema_de_reserva_app/includes/migrations.php`
   Migraciones SQLite versionadas.
 - `sistema_de_reserva_app/includes/view.php`
@@ -211,8 +235,9 @@ Nota:
 
 1. El cliente entra a su panel.
 2. Filtra por disciplina y elige profesional y servicio.
-3. Reserva un bloque horario.
-4. Puede reprogramar o cancelar desde el modal del calendario.
+3. Revisa la confirmacion del wizard y reserva un bloque horario.
+4. Si no hay cupo, puede caer a lista de espera automatica.
+5. Puede reprogramar o cancelar desde el modal del calendario.
 
 ### Flujo profesional
 
@@ -226,6 +251,7 @@ Nota:
 2. Configura identidad y agenda.
 3. Gestiona clientes, equipo, servicios y disciplinas.
 4. Opera reservas desde el calendario central.
+5. Exporta datos, procesa notificaciones, genera backups y revisa auditoria.
 
 ## Instalacion y ejecucion local
 
@@ -237,6 +263,30 @@ Nota:
   - `sistema_de_reserva_app/data/`
   - `sistema_de_reserva_app/assets/services/`
   - `sistema_de_reserva_app/assets/branding/`
+  - `sistema_de_reserva_app/assets/styles/`
+
+### Variables de entorno
+
+- copia `.env.example` a `.env` si quieres forzar valores de entorno locales
+- claves base:
+  - `APP_ENV`
+  - `APP_TIMEZONE`
+  - `NOTIFICATIONS_SEND_EMAIL`
+  - `SMTP_HOST`
+  - `SMTP_PORT`
+  - `SMTP_USERNAME`
+  - `SMTP_PASSWORD`
+  - `SMTP_ENCRYPTION`
+  - `SMTP_FROM_NAME`
+  - `SMTP_FROM_EMAIL`
+
+### Correo real
+
+- por defecto las notificaciones quedan en modo simulado
+- para envio real:
+  - activa `notifications_send_email` en administracion o `NOTIFICATIONS_SEND_EMAIL=1` en `.env`
+  - configura host, puerto, usuario, clave y cifrado SMTP
+  - el sistema usa envio SMTP directo, sin Composer ni dependencias externas
 
 ### Arranque local
 
@@ -257,6 +307,23 @@ URL:
 - `http://127.0.0.1:8000/`
 
 ## Pruebas
+
+- prueba de humo principal:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tests\smoke.ps1
+```
+
+- la prueba cubre:
+  - home
+  - login admin
+  - exportacion CSV
+  - login profesional
+  - registro y login cliente
+  - creacion de reserva
+  - reprogramacion
+  - lista de espera
+  - feed publico
 
 ### Smoke tests
 

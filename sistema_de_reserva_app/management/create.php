@@ -21,14 +21,16 @@ try {
             $bio = request_post_string('bio_professional', false);
             $color = validate_color(request_post_string('calendar_color'));
             $disciplina = request_post_string('id_disciplina', false);
+            $bookingCapacity = max(1, request_post_int('booking_capacity', false) ?: 1);
+            $acceptsWaitlist = request_post_string('accepts_waitlist', false) === '0' ? 0 : 1;
 
             ensure_unique_value($pdo, 'professionals', 'user_professional', $usuario);
             ensure_unique_value($pdo, 'professionals', 'email_professional', $email);
 
             $pdo->prepare(
                 'INSERT INTO professionals
-                 (user_professional, pass_professional, name_professional, email_professional, phone_professional, bio_professional, calendar_color, id_disciplina, activo, id_estado)
-                 VALUES (:usuario, :password, :nombre, :email, :telefono, :bio, :color, :id_disciplina, 1, 2)'
+                 (user_professional, pass_professional, name_professional, email_professional, phone_professional, bio_professional, calendar_color, id_disciplina, activo, id_estado, booking_capacity, accepts_waitlist, notification_email, notification_whatsapp)
+                 VALUES (:usuario, :password, :nombre, :email, :telefono, :bio, :color, :id_disciplina, 1, 2, :booking_capacity, :accepts_waitlist, :notification_email, :notification_whatsapp)'
             )->execute(
                 array(
                     ':usuario' => $usuario,
@@ -39,10 +41,24 @@ try {
                     ':bio' => $bio,
                     ':color' => $color,
                     ':id_disciplina' => $disciplina === '' ? null : (int) $disciplina,
+                    ':booking_capacity' => $bookingCapacity,
+                    ':accepts_waitlist' => $acceptsWaitlist,
+                    ':notification_email' => $email,
+                    ':notification_whatsapp' => $telefono,
                 )
             );
 
-            ensure_professional_schedule_rows($pdo, (int) $pdo->lastInsertId());
+            $professionalId = (int) $pdo->lastInsertId();
+            ensure_professional_schedule_rows($pdo, $professionalId);
+            if ($disciplina !== '') {
+                $pdo->prepare('INSERT OR IGNORE INTO professional_disciplines (id_professional, id_disciplina) VALUES (:id_professional, :id_disciplina)')
+                    ->execute(array(':id_professional' => $professionalId, ':id_disciplina' => (int) $disciplina));
+                $pdo->prepare(
+                    'INSERT OR IGNORE INTO professional_services (id_professional, id_servicio)
+                     SELECT :id_professional, id_servicio FROM servicios WHERE id_disciplina = :id_disciplina AND activo = 1'
+                )->execute(array(':id_professional' => $professionalId, ':id_disciplina' => (int) $disciplina));
+            }
+            audit_log($pdo, 'professional', $professionalId, 'created', 'Profesional creado', array('name_professional' => $nombre));
 
             app_redirect('../admin-dashboard.php#profesionales', 'Profesional creado correctamente');
             break;
@@ -94,6 +110,7 @@ try {
                 )
             );
 
+            audit_log($pdo, 'customer', (int) $pdo->lastInsertId(), 'created', 'Cliente creado desde administracion', array('correo_cliente' => $correo));
             app_redirect('../admin-dashboard.php#clientes', 'Cliente creado. Usuario: ' . $usuario);
             break;
 
@@ -109,14 +126,15 @@ try {
                 )
             );
 
+            audit_log($pdo, 'discipline', (int) $pdo->lastInsertId(), 'created', 'Disciplina creada');
             app_redirect('../admin-dashboard.php#disciplinas', 'Disciplina creada correctamente');
             break;
 
         case 'servicio':
             $imagen = save_service_image($_FILES['img_servicio'] ?? array());
             $pdo->prepare(
-                'INSERT INTO servicios (id_disciplina, nombre_servicio, descripcion_servicio, precio_servicio, duracion_minutos, modalidad_servicio, img_servicio, color, textColor, activo)
-                 VALUES (:id_disciplina, :nombre, :descripcion, :precio, :duracion, :modalidad, :imagen, :color, :textColor, 1)'
+                'INSERT INTO servicios (id_disciplina, nombre_servicio, descripcion_servicio, precio_servicio, duracion_minutos, modalidad_servicio, img_servicio, color, textColor, activo, buffer_before_min, buffer_after_min, allows_parallel)
+                 VALUES (:id_disciplina, :nombre, :descripcion, :precio, :duracion, :modalidad, :imagen, :color, :textColor, 1, :buffer_before_min, :buffer_after_min, :allows_parallel)'
             )->execute(
                 array(
                     ':id_disciplina' => request_post_string('id_disciplina', false) === '' ? null : (int) request_post_string('id_disciplina', false),
@@ -128,9 +146,13 @@ try {
                     ':imagen' => $imagen,
                     ':color' => validate_color(request_post_string('color')),
                     ':textColor' => validate_color(request_post_string('textColor')),
+                    ':buffer_before_min' => max(0, request_post_int('buffer_before_min', false)),
+                    ':buffer_after_min' => max(0, request_post_int('buffer_after_min', false)),
+                    ':allows_parallel' => request_post_string('allows_parallel', false) === '1' ? 1 : 0,
                 )
             );
 
+            audit_log($pdo, 'service', (int) $pdo->lastInsertId(), 'created', 'Servicio creado');
             app_redirect('../admin-dashboard.php#servicios', 'Servicio creado correctamente');
             break;
 
@@ -141,11 +163,11 @@ try {
             $start = validate_datetime_slot(request_post_string('dia'), request_post_string('hora'));
             $duration = service_duration_minutes($pdo, $idServicio);
             $end = calculate_event_end($start, $duration);
-            ensure_slot_available($pdo, $idProfessional, $start, $end);
+            ensure_slot_available($pdo, $idProfessional, $start, $end, null, $idServicio);
 
             $pdo->prepare(
-                'INSERT INTO eventos (title, id_cliente, id_professional, id_servicio, start, end, notas_reserva)
-                 VALUES (:title, :id_cliente, :id_professional, :id_servicio, :start, :end, :notas)'
+                'INSERT INTO eventos (title, id_cliente, id_professional, id_servicio, start, end, estado_reserva, notas_reserva)
+                 VALUES (:title, :id_cliente, :id_professional, :id_servicio, :start, :end, :estado_reserva, :notas)'
             )->execute(
                 array(
                     ':title' => 'Reservado',
@@ -154,10 +176,15 @@ try {
                     ':id_servicio' => $idServicio,
                     ':start' => $start,
                     ':end' => $end,
+                    ':estado_reserva' => validate_reservation_status(request_post_string('estado_reserva', false)),
                     ':notas' => request_post_string('notas_reserva', false),
                 )
             );
 
+            $eventId = (int) $pdo->lastInsertId();
+            audit_log($pdo, 'booking', $eventId, 'created', 'Reserva creada desde administracion');
+            queue_event_notifications($pdo, $eventId, 'confirmacion');
+            dispatch_notification_queue($pdo);
             app_redirect('../admin-dashboard.php#reservas', 'Reserva agregada correctamente');
             break;
 
@@ -166,7 +193,11 @@ try {
                 'app_name', 'business_name', 'business_tagline', 'hero_title', 'hero_subtitle',
                 'primary_color', 'secondary_color', 'accent_color', 'surface_color',
                 'contact_email', 'contact_phone', 'contact_address', 'business_city',
-                'business_type', 'opening_time', 'closing_time', 'slot_interval', 'booking_notice'
+                'business_type', 'opening_time', 'closing_time', 'slot_interval', 'booking_notice',
+                'global_buffer_min', 'reminder_hours_before', 'notifications_email_enabled',
+                'notifications_whatsapp_enabled', 'notifications_send_email', 'smtp_from_name',
+                'smtp_from_email', 'smtp_host', 'smtp_port', 'smtp_username', 'smtp_password',
+                'smtp_encryption', 'app_timezone'
             );
 
             foreach ($keys as $key) {
@@ -193,7 +224,33 @@ try {
                 save_brand_asset($_FILES['brand_cover'] ?? array(), 'cover', array('png', 'jpg', 'jpeg', 'webp'), array('image/png', 'image/jpeg', 'image/webp'), setting_value('brand_cover', ''))
             );
 
-            app_redirect('../admin-dashboard.php#configuracion', 'Configuracion actualizada');
+            audit_log($pdo, 'settings', 1, 'updated', 'Configuracion general actualizada');
+            app_redirect('../admin-settings.php#configuracion', 'Configuracion actualizada');
+            break;
+
+        case 'holiday':
+            $pdo->prepare(
+                'INSERT INTO global_holidays (holiday_date, holiday_name, is_closed, start_time, end_time, notes)
+                 VALUES (:holiday_date, :holiday_name, :is_closed, :start_time, :end_time, :notes)
+                 ON CONFLICT(holiday_date) DO UPDATE SET
+                    holiday_name = excluded.holiday_name,
+                    is_closed = excluded.is_closed,
+                    start_time = excluded.start_time,
+                    end_time = excluded.end_time,
+                    notes = excluded.notes'
+            )->execute(
+                array(
+                    ':holiday_date' => request_post_string('holiday_date'),
+                    ':holiday_name' => request_post_string('holiday_name'),
+                    ':is_closed' => request_post_string('is_closed', false) === '1' ? 1 : 0,
+                    ':start_time' => validate_time_value(request_post_string('start_time', false), true),
+                    ':end_time' => validate_time_value(request_post_string('end_time', false), true),
+                    ':notes' => request_post_string('notes', false),
+                )
+            );
+
+            audit_log($pdo, 'holiday', 0, 'created', 'Feriado o bloqueo global guardado');
+            app_redirect('../admin-settings.php#bloqueos', 'Bloqueo global actualizado');
             break;
 
         default:

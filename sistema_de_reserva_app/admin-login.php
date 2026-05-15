@@ -20,9 +20,10 @@ $theme = current_theme();
         )
     ); ?>
 </head>
-<body class="min-h-screen px-4 py-10 text-slate-900 sm:px-6">
-    <main class="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[0.92fr_1.08fr]">
-        <section class="rounded-[2rem] border border-white/50 bg-white/80 p-8 shadow-2xl backdrop-blur-xl">
+<body class="min-h-screen text-slate-900">
+    <?php render_flash_messages(); ?>
+    <main class="auth-shell grid gap-6 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+        <section class="surface-card surface-card-body">
             <div class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Administracion</div>
             <h1 class="mt-4 text-4xl font-semibold leading-tight">Centro de control con configuracion completa.</h1>
             <p class="mt-4 text-base leading-7 text-slate-600">Gestiona identidad, agenda, clientes, servicios y operacion general desde un unico panel.</p>
@@ -34,16 +35,16 @@ $theme = current_theme();
                 </div>
             </div>
         </section>
-        <section class="rounded-[2rem] border border-white/50 bg-white/85 p-8 shadow-2xl backdrop-blur-xl">
+        <section class="surface-card surface-card-body">
             <a href="index.php" class="text-sm font-medium text-slate-500 transition hover:text-slate-900">← Volver al inicio</a>
             <h2 class="mt-6 text-3xl font-semibold">Ingresar al panel</h2>
             <form action="auth.php" method="post" class="mt-8 space-y-5">
                 <?php echo csrf_input(); ?>
                 <label class="block text-sm font-medium text-slate-600">Correo administrador
-                    <input class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-slate-400" name="email" type="email" required>
+                    <input class="field-input" name="email" type="email" required>
                 </label>
                 <label class="block text-sm font-medium text-slate-600">Contraseña
-                    <input class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-slate-400" name="password" type="password" required>
+                    <input class="field-input" name="password" type="password" required>
                 </label>
                 <button class="inline-flex w-full items-center justify-center rounded-2xl px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:opacity-95" style="background: linear-gradient(135deg, var(--secondary), var(--primary));" type="submit" name="action" value="login-admin">
                     Ingresar al panel

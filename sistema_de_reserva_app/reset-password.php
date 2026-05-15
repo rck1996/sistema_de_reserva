@@ -22,8 +22,10 @@ $record = $token !== '' ? password_reset_record(app_pdo(), $token) : null;
         )
     ); ?>
 </head>
-<body class="min-h-screen px-4 py-10 text-slate-900 sm:px-6">
-    <main class="mx-auto max-w-xl rounded-[2rem] border border-white/50 bg-white/85 p-8 shadow-2xl backdrop-blur-xl">
+<body class="min-h-screen text-slate-900">
+    <?php render_flash_messages(); ?>
+    <main class="auth-shell">
+        <section class="auth-card max-w-xl">
         <a href="index.php#acceso" class="text-sm font-medium text-slate-500 hover:text-slate-900">← Volver</a>
         <h1 class="mt-6 text-3xl font-semibold">Definir nueva contraseña</h1>
         <?php if ($record === null): ?>
@@ -34,11 +36,12 @@ $record = $token !== '' ? password_reset_record(app_pdo(), $token) : null;
                 <input type="hidden" name="action" value="reset-password">
                 <input type="hidden" name="token" value="<?php echo escape_html($token); ?>">
                 <label class="block text-sm font-medium text-slate-600">Nueva contraseña
-                    <input class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" name="password" type="password" minlength="8" required>
+                    <input class="field-input" name="password" type="password" minlength="8" required>
                 </label>
                 <button class="inline-flex w-full items-center justify-center rounded-2xl px-6 py-3 text-sm font-semibold text-white shadow-lg" style="background:linear-gradient(135deg,var(--secondary),var(--primary));" type="submit">Actualizar contraseña</button>
             </form>
         <?php endif; ?>
+        </section>
     </main>
 </body>
 </html>

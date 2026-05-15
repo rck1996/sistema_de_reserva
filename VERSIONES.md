@@ -2,6 +2,23 @@
 
 Historial resumido de la evolucion del proyecto `sistema_de_reserva`.
 
+## En desarrollo - 2026-05-14
+
+Incluye:
+
+- reglas de negocio ampliadas con buffers por servicio, cupos por profesional, feriados globales y lista de espera
+- estados de reserva ampliados: pendiente, confirmada, en progreso, completada, no asistio y cancelada
+- notificaciones de confirmacion, actualizacion, cancelacion y recordatorio con cola operativa
+- soporte de correo SMTP real configurable desde panel o `.env`
+- exportacion CSV y PDF de reservas y clientes
+- backups y restauracion de SQLite desde administracion
+- auditoria operativa en base de datos
+- panel admin con metricas, bloqueos globales, operaciones y seguimiento de waitlist/notificaciones
+- wizard de reserva cliente con resumen y fallback a lista de espera
+- migracion de Tailwind desde CDN a build local compilado en `assets/styles/app.css`
+- loader simple de `.env` y archivo `.env.example`
+- prueba de humo ampliada con exportacion y lista de espera
+
 ## b464e31 - Upgrade calendars, UX, docs, and smoke tests
 
 Fecha: 2026-05-12
