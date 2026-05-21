@@ -8,7 +8,7 @@ import { Input, Select, Textarea } from '../components/ui/input';
 import { BookingDrawer } from '../features/booking/booking-drawer';
 import { Metrics } from '../features/dashboard/metrics';
 import { AppShell } from '../layouts/app-shell';
-import { createCustomerBooking, getAdminDashboard, getAuthState, getCustomerDashboard, getPublicData, getStaffDashboard, postAuth } from '../services/portal-api';
+import { createCustomerBooking, getAdminDashboard, getAdminManagement, getAuthState, getCustomerDashboard, getPublicData, getStaffDashboard, postAuth, saveAdminManagement } from '../services/portal-api';
 import { useBookingStore } from '../store/booking-store';
 import type { Booking, Professional, Service } from '../types/booking';
 
@@ -495,22 +495,182 @@ function StatsSection({ bookings, services }: { bookings: Booking[]; services: S
 }
 
 function ConfigSection({ title, onNavigateHome }: { title: string; onNavigateHome: () => void }) {
+  const queryClient = useQueryClient();
+  const [message, setMessage] = useState('');
+  const [customerId, setCustomerId] = useState('');
+  const [disciplineId, setDisciplineId] = useState('');
+  const [serviceId, setServiceId] = useState('');
+  const query = useQuery({ queryKey: ['admin-management'], queryFn: getAdminManagement, enabled: title === 'Admin', retry: false });
+  const save = useMutation({
+    mutationFn: (form: FormData) => saveAdminManagement(form, query.data?.csrfToken ?? ''),
+    onSuccess: async () => {
+      setMessage('Cambios guardados correctamente.');
+      await queryClient.invalidateQueries({ queryKey: ['admin-management'] });
+      await queryClient.invalidateQueries({ queryKey: ['admin-dashboard'] });
+    },
+  });
+
+  if (title !== 'Admin') {
+    return (
+      <Card className="p-6">
+        <div className="flex items-start gap-4">
+          <div className="grid h-12 w-12 place-items-center rounded-2xl border border-white/10 bg-white/[0.07] text-cyan-200"><Settings size={20} /></div>
+          <div>
+            <h2 className="text-2xl font-semibold text-white">Preferencias {title.toLowerCase()}</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">La configuracion operativa completa esta restringida a administracion. Esta vista queda reservada para preferencias del rol.</p>
+            <Button className="mt-5" onClick={onNavigateHome}>Volver al inicio</Button>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  if (query.isLoading || !query.data) return <CalendarSkeleton />;
+  const data = query.data;
+  const selectedCustomer = data.customers.find((customer) => String(customer.id) === customerId);
+  const selectedDiscipline = data.disciplines.find((discipline) => String(discipline.id) === disciplineId);
+  const selectedService = data.services.find((service) => String(service.id) === serviceId);
+
   return (
-    <Card className="p-6">
-      <div className="flex items-start gap-4">
-        <div className="grid h-12 w-12 place-items-center rounded-2xl border border-white/10 bg-white/[0.07] text-cyan-200"><Settings size={20} /></div>
-        <div>
-          <h2 className="text-2xl font-semibold text-white">Configuracion {title.toLowerCase()}</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">Esta seccion queda conectada como destino real del sidebar. La edicion profunda de branding, servicios y reglas aun vive en el backend PHP legado y se ira migrando por modulos.</p>
-          <Button className="mt-5" onClick={onNavigateHome}>Volver al inicio</Button>
+    <div className="space-y-6">
+      <Card className="overflow-hidden p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <Badge tone="cyan"><Settings size={14} className="mr-2" /> Configuracion SaaS</Badge>
+            <h2 className="mt-4 text-3xl font-semibold tracking-tight text-white">Centro de control migrado a React</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">Branding, reglas operativas, clientes, disciplinas y servicios ya se administran con API JSON y CSRF. Los formularios conservan validaciones del backend PHP.</p>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <MiniStat label="Clientes" value={data.customers.length} />
+            <MiniStat label="Servicios" value={data.services.length} />
+            <MiniStat label="Staff" value={data.professionals.length} />
+          </div>
+        </div>
+        {message ? <p className="mt-5 rounded-2xl border border-emerald-300/20 bg-emerald-400/10 p-3 text-sm text-emerald-100">{message}</p> : null}
+        {save.error ? <p className="mt-5 rounded-2xl border border-rose-300/20 bg-rose-400/10 p-3 text-sm text-rose-100">{save.error.message}</p> : null}
+      </Card>
+
+      <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_minmax(24rem,.7fr)]">
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/70">Branding y reglas</p>
+              <h3 className="mt-2 text-2xl font-semibold text-white">Identidad configurable</h3>
+            </CardHeader>
+            <CardContent>
+              <form className="grid gap-4 lg:grid-cols-2" onSubmit={(event) => submitForm(event, save.mutate, 'settings')}>
+                <Input name="business_name" defaultValue={data.settings.business_name} placeholder="Nombre comercial" />
+                <Input name="app_name" defaultValue={data.settings.app_name} placeholder="Nombre app" />
+                <Input name="business_tagline" defaultValue={data.settings.business_tagline} placeholder="Tagline" className="lg:col-span-2" />
+                <Input name="hero_title" defaultValue={data.settings.hero_title} placeholder="Titulo principal" className="lg:col-span-2" />
+                <Textarea name="hero_subtitle" defaultValue={data.settings.hero_subtitle} placeholder="Subtitulo principal" className="lg:col-span-2" />
+                <Input name="contact_email" defaultValue={data.settings.contact_email} placeholder="contacto@dominio.cl" />
+                <Input name="contact_phone" defaultValue={data.settings.contact_phone} placeholder="+56900000000" />
+                <Input name="business_type" defaultValue={data.settings.business_type} placeholder="Tipo de negocio" />
+                <Input name="app_timezone" defaultValue={data.settings.app_timezone || 'America/Santiago'} placeholder="Timezone" />
+                <Input name="opening_time" type="time" defaultValue={data.settings.opening_time || '09:00'} />
+                <Input name="closing_time" type="time" defaultValue={data.settings.closing_time || '18:00'} />
+                <Input name="slot_interval" type="number" min={5} step={5} defaultValue={data.settings.slot_interval || '30'} placeholder="Intervalo" />
+                <Input name="booking_notice" type="number" min={0} defaultValue={data.settings.booking_notice || '0'} placeholder="Aviso minimo" />
+                <Input name="global_buffer_min" type="number" min={0} defaultValue={data.settings.global_buffer_min || '0'} placeholder="Buffer global" />
+                <Input name="reminder_hours_before" type="number" min={0} defaultValue={data.settings.reminder_hours_before || '24'} placeholder="Recordatorio horas" />
+                <Select name="notifications_email_enabled" defaultValue={data.settings.notifications_email_enabled || '0'}><option value="0">Email inactivo</option><option value="1">Email activo</option></Select>
+                <Select name="notifications_whatsapp_enabled" defaultValue={data.settings.notifications_whatsapp_enabled || '0'}><option value="0">WhatsApp inactivo por defecto</option><option value="1">WhatsApp activo manual</option></Select>
+                <Button className="lg:col-span-2" variant="primary" disabled={save.isPending}>Guardar configuracion</Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-violet-200/70">Clientes</p>
+              <h3 className="mt-2 text-2xl font-semibold text-white">Crear o editar cliente</h3>
+            </CardHeader>
+            <CardContent>
+              <Select value={customerId} onChange={(event) => setCustomerId(event.target.value)} aria-label="Seleccionar cliente">
+                <option value="">Nuevo cliente</option>
+                {data.customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.firstName} {customer.lastName}</option>)}
+              </Select>
+              <form key={customerId || 'new-customer'} className="mt-4 grid gap-4 lg:grid-cols-2" onSubmit={(event) => submitForm(event, save.mutate, 'client')}>
+                <input type="hidden" name="id_cliente" value={selectedCustomer?.id ?? ''} />
+                <Input name="nombre_cliente" defaultValue={selectedCustomer?.firstName ?? ''} placeholder="Nombre" required />
+                <Input name="apellido_cliente" defaultValue={selectedCustomer?.lastName ?? ''} placeholder="Apellido" required />
+                <Input name="telefono_cliente" defaultValue={selectedCustomer?.phone ?? '+56900000000'} placeholder="+56900000000" required />
+                <Input name="correo_cliente" type="email" defaultValue={selectedCustomer?.email ?? ''} placeholder="correo@dominio.cl" required />
+                <Input name="user_cliente" defaultValue={selectedCustomer?.username ?? ''} placeholder="Usuario" />
+                {!selectedCustomer ? <Input name="pass_cliente" type="password" placeholder="Clave temporal opcional" /> : null}
+                <Textarea name="notas_cliente" defaultValue={selectedCustomer?.notes ?? ''} placeholder="Notas internas" className="lg:col-span-2" />
+                <Button className="lg:col-span-2" variant="primary" disabled={save.isPending}>{selectedCustomer ? 'Actualizar cliente' : 'Crear cliente'}</Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-200/70">Disciplinas</p>
+              <h3 className="mt-2 text-2xl font-semibold text-white">Catalogo base</h3>
+            </CardHeader>
+            <CardContent>
+              <Select value={disciplineId} onChange={(event) => setDisciplineId(event.target.value)} aria-label="Seleccionar disciplina">
+                <option value="">Nueva disciplina</option>
+                {data.disciplines.map((discipline) => <option key={discipline.id} value={discipline.id}>{discipline.name}</option>)}
+              </Select>
+              <form key={disciplineId || 'new-discipline'} className="mt-4 space-y-4" onSubmit={(event) => submitForm(event, save.mutate, 'discipline')}>
+                <input type="hidden" name="id_disciplina" value={selectedDiscipline?.id ?? ''} />
+                <Input name="nombre_disciplina" defaultValue={selectedDiscipline?.name ?? ''} placeholder="Nombre disciplina" required />
+                <Textarea name="descripcion_disciplina" defaultValue={selectedDiscipline?.description ?? ''} placeholder="Descripcion" />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Input name="color_disciplina" type="color" defaultValue={selectedDiscipline?.color ?? '#22d3ee'} />
+                  <Select name="activa" defaultValue={String(selectedDiscipline?.active ?? 1)}><option value="1">Activa</option><option value="0">Inactiva</option></Select>
+                </div>
+                <Button className="w-full" variant="primary" disabled={save.isPending}>{selectedDiscipline ? 'Actualizar disciplina' : 'Crear disciplina'}</Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/70">Servicios</p>
+              <h3 className="mt-2 text-2xl font-semibold text-white">Oferta vendible</h3>
+            </CardHeader>
+            <CardContent>
+              <Select value={serviceId} onChange={(event) => setServiceId(event.target.value)} aria-label="Seleccionar servicio">
+                <option value="">Nuevo servicio</option>
+                {data.services.map((service) => <option key={service.id} value={service.id}>{service.name}</option>)}
+              </Select>
+              <form key={serviceId || 'new-service'} className="mt-4 space-y-4" onSubmit={(event) => submitForm(event, save.mutate, 'service')}>
+                <input type="hidden" name="id_servicio" value={selectedService?.id ?? ''} />
+                <Select name="id_disciplina" defaultValue={String(selectedService?.disciplineId ?? '')}>
+                  <option value="">Sin disciplina</option>
+                  {data.disciplines.filter((discipline) => Number(discipline.active) === 1).map((discipline) => <option key={discipline.id} value={discipline.id}>{discipline.name}</option>)}
+                </Select>
+                <Input name="nombre_servicio" defaultValue={selectedService?.name ?? ''} placeholder="Nombre servicio" required />
+                <Textarea name="descripcion_servicio" defaultValue={selectedService?.description ?? ''} placeholder="Descripcion" />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Input name="precio_servicio" type="number" min={0} defaultValue={String(selectedService?.price ?? 0)} placeholder="Precio" />
+                  <Input name="duracion_minutos" type="number" min={15} step={5} defaultValue={String(selectedService?.durationMinutes ?? 60)} placeholder="Duracion" />
+                  <Input name="modalidad_servicio" defaultValue={selectedService?.modality ?? 'Presencial'} placeholder="Modalidad" />
+                  <Input name="color" type="color" defaultValue={selectedService?.color ?? '#22d3ee'} />
+                  <Select name="activo" defaultValue={String(selectedService?.active ?? 1)}><option value="1">Activo</option><option value="0">Inactivo</option></Select>
+                </div>
+                <Button className="w-full" variant="primary" disabled={save.isPending}>{selectedService ? 'Actualizar servicio' : 'Crear servicio'}</Button>
+              </form>
+            </CardContent>
+          </Card>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
 
 function ListRow({ title, subtitle }: { title: string; subtitle: string }) {
   return <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.05] p-4"><p className="font-semibold text-white">{title}</p><p className="mt-1 text-sm text-slate-400">{subtitle}</p></div>;
+}
+
+function MiniStat({ label, value }: { label: string; value: number }) {
+  return <div className="min-w-20 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3"><p className="text-2xl font-semibold text-white">{value}</p><p className="text-xs text-slate-400">{label}</p></div>;
 }
 
 function EmptyState({ text }: { text: string }) {

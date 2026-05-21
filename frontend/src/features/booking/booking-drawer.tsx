@@ -83,7 +83,7 @@ export function BookingDrawer({ csrfToken, isDemo }: BookingDrawerProps) {
             <InfoCard icon={UserRound} label="Cliente" value={booking.customerName} />
             <InfoCard icon={Clock3} label="Horario" value={new Date(booking.start).toLocaleString('es-CL')} />
             <InfoCard icon={CreditCard} label="Ingreso" value={`$${booking.revenue.toLocaleString('es-CL')}`} />
-            <InfoCard icon={MessageSquareText} label="Canal" value="Email + WhatsApp ready" />
+            <InfoCard icon={MessageSquareText} label="Canal" value="Email activo / WhatsApp opcional" />
           </div>
 
           <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.05] p-4">

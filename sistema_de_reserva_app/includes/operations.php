@@ -545,10 +545,12 @@ function notify_waitlist_matches(PDO $pdo, array $event): void
                 'event_id' => (int) $event['id_evento'],
             ), (int) $event['id_evento']);
         }
-        if ((string) $match['telefono_cliente'] !== '') {
+        if (setting_flag('notifications_whatsapp_enabled', false) && (string) $match['telefono_cliente'] !== '') {
+            $phone = preg_replace('/[^0-9]/', '', (string) $match['telefono_cliente']) ?: '';
             queue_notification($pdo, 'whatsapp', (string) $match['telefono_cliente'], 'waitlist_match', 'Horario disponible', $message, array(
                 'waitlist_id' => (int) $match['id_waitlist'],
                 'event_id' => (int) $event['id_evento'],
+                'whatsapp_url' => 'https://wa.me/' . $phone . '?text=' . rawurlencode($message),
             ), (int) $event['id_evento']);
         }
 

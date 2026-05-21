@@ -108,6 +108,35 @@ export async function getAdminDashboard(): Promise<DashboardSnapshot> {
   return payload;
 }
 
+export async function getAdminManagement() {
+  const response = await fetch('/php-api/api/admin-management.php', { credentials: 'include' });
+  if (response.status === 401) throw new Error('admin_required');
+  const payload = await readJson<any>(response);
+  if (!response.ok || !payload.ok) throw new Error(payload.error || 'No se pudo cargar administracion');
+  return payload as AdminManagementPayload;
+}
+
+export async function saveAdminManagement(form: FormData, csrfToken: string): Promise<AdminManagementPayload> {
+  form.set('csrf_token', csrfToken);
+  const body = new URLSearchParams();
+  form.forEach((value, key) => {
+    body.set(key, String(value));
+  });
+
+  const response = await fetch('/php-api/api/admin-management.php', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body,
+  });
+  const payload = await readJson<AdminManagementPayload & { error?: string }>(response);
+  if (!response.ok || !payload.ok) throw new Error(payload.error || 'No se pudo guardar');
+  return payload;
+}
+
 export async function getCustomerDashboard() {
   const response = await fetch('/php-api/api/customer-dashboard.php', { credentials: 'include' });
   if (response.status === 401) throw new Error('customer_required');
@@ -178,3 +207,13 @@ async function readJson<T>(response: Response): Promise<T> {
     throw new Error(`Respuesta no JSON del servidor (${response.status}): ${preview}`);
   }
 }
+
+export type AdminManagementPayload = {
+  ok: true;
+  csrfToken: string;
+  settings: Record<string, string>;
+  disciplines: Array<{ id: number; name: string; description: string; color: string; active: number }>;
+  services: Array<{ id: number; disciplineId: number | null; disciplineName: string | null; name: string; description: string; price: number; durationMinutes: number; modality: string; color: string; active: number }>;
+  customers: Array<{ id: number; firstName: string; lastName: string; phone: string; email: string; username: string; notes: string; statusId: number }>;
+  professionals: Array<{ id: number; name: string; username: string; email: string; phone: string; bio: string; color: string; active: number; capacity: number; serviceIds: string; disciplineIds: string }>;
+};

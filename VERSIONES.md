@@ -27,6 +27,10 @@ Incluye:
 - calendario cliente en modo lectura para evitar mutaciones de staff/admin desde una cuenta cliente
 - CSRF de autenticacion endurecido para recuperar token fresco si el formulario se envia antes de cargar la sesion
 - script `scripts/normalize-demo-catalog.php` para limpiar datos demo heredados y dejar servicios multidisciplinarios
+- migracion parcial de administracion a React con API `api/admin-management.php`
+- configuracion, reglas basicas, clientes, disciplinas y servicios editables desde el panel React con CSRF
+- WhatsApp documentado como integracion opcional desactivada por defecto, con guia de activacion y pruebas
+- lista de espera corregida para no generar notificaciones WhatsApp si `notifications_whatsapp_enabled` esta inactivo
 
 ## En desarrollo - 2026-05-14
 

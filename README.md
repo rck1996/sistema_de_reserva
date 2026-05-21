@@ -248,6 +248,54 @@ Desde administracion se puede configurar:
 
 Si no se sube favicon, la app usa uno por defecto para evitar errores 404 en navegacion.
 
+### WhatsApp opcional
+
+La integracion WhatsApp esta desactivada por defecto:
+
+```text
+notifications_whatsapp_enabled = 0
+```
+
+El sistema no envia mensajes automaticos por WhatsApp mientras esa opcion este inactiva. En ese estado, las reservas y lista de espera siguen funcionando, pero solo se generan notificaciones por los canales activos.
+
+Implementacion actual:
+
+- canal opcional basado en enlaces `https://wa.me/...`
+- no requiere token ni proveedor externo para generar el enlace
+- no envia mensajes en segundo plano por la API oficial de Meta
+- no tiene costo de API mientras se mantenga en modo enlace manual
+- si se quiere envio automatico real, se debe integrar un proveedor como WhatsApp Business Cloud API, Twilio, MessageBird u otro gateway
+
+Activacion manual desde admin:
+
+1. Entrar como admin.
+2. Ir a `Configuracion`.
+3. Cambiar `WhatsApp inactivo por defecto` a `WhatsApp activo manual`.
+4. Guardar configuracion.
+5. Confirmar que los clientes tengan telefono en formato internacional, por ejemplo `+56912345678`.
+6. Crear o actualizar una reserva de prueba.
+7. Revisar la cola de notificaciones o auditoria para confirmar que se genero el canal `whatsapp`.
+8. Abrir el enlace `wa.me` generado y confirmar que WhatsApp muestra el texto prellenado antes de enviarlo manualmente.
+
+Checklist antes de activar en produccion:
+
+- validar consentimiento del cliente para recibir mensajes
+- documentar horarios de envio y frecuencia
+- probar con un numero interno primero
+- mantener WhatsApp inactivo si no existe responsable de operacion
+- no guardar tokens reales en el repositorio
+
+Para envio automatico real con WhatsApp Business Cloud API:
+
+1. Crear una cuenta en Meta for Developers.
+2. Crear o conectar una cuenta WhatsApp Business.
+3. Obtener `phone_number_id`, `business_account_id` y token de acceso.
+4. Crear plantillas aprobadas para confirmacion, recordatorio y cancelacion.
+5. Guardar credenciales en `.env`, nunca en Git.
+6. Reemplazar el dispatcher de `notification_log` para llamar al endpoint oficial de Meta.
+7. Probar en sandbox con un numero verificado.
+8. Activar `notifications_whatsapp_enabled = 1` solo despues de pasar pruebas.
+
 ## Datos demo incluidos
 
 La base que va versionada en el repositorio incluye una demo util para revision:
