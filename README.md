@@ -1,6 +1,8 @@
 # sistema_de_reserva
 
-Sistema web de reservas multidisciplinario, configurable y desacoplado de una industria especifica. La aplicacion permite operar agendas, clientes, profesionales, servicios y branding desde una sola plataforma, usando PHP + SQLite y una interfaz moderna basada en Tailwind CSS compilado localmente y FullCalendar.
+Sistema web de reservas multidisciplinario, configurable y desacoplado de una industria especifica. La aplicacion permite operar agendas, clientes, profesionales, servicios y branding desde una sola plataforma.
+
+La version estable actual mantiene PHP + SQLite para operar el sistema completo. En paralelo se agrego una nueva base `frontend/` con React + TypeScript para migrar la experiencia hacia un SaaS premium moderno sin romper los flujos existentes.
 
 ## Resumen
 
@@ -13,6 +15,113 @@ El proyecto esta pensado para negocios que necesitan:
 - una base ligera, facil de clonar y ejecutar
 
 No esta limitado a peluqueria. Puede adaptarse a centros de bienestar, asesoria, estetica, salud no critica, servicios profesionales y otros modelos de agenda similares.
+
+## Frontend moderno principal
+
+La carpeta `frontend/` contiene la nueva experiencia principal del producto. Las pantallas publicas, cliente, profesional y administracion se revisan desde React:
+
+- React 19 + TypeScript
+- Vite
+- Tailwind CSS v4
+- Framer Motion
+- TanStack React Query
+- Zustand
+- React Hook Form + Zod
+- FullCalendar React
+- componentes UI reutilizables con estilo shadcn/ui
+- layout SaaS con sidebar, mobile bottom nav, cards premium, drawer lateral y calendario interactivo
+
+Para revisarlo:
+
+```powershell
+cd C:\Users\x13\sistema_de_reserva
+.\start-frontend.cmd
+```
+
+Abrir:
+
+```text
+http://127.0.0.1:5173/
+```
+
+Rutas principales:
+
+```text
+Inicio:       http://127.0.0.1:5173/
+Acceso:       http://127.0.0.1:5173/login
+Cliente:      http://127.0.0.1:5173/cliente
+Profesional:  http://127.0.0.1:5173/profesional
+Admin:        http://127.0.0.1:5173/admin
+```
+
+Credenciales demo:
+
+```text
+Admin
+Tipo: Admin
+Email: admin@sistema.local
+Clave: Admin12345
+
+Profesional
+Tipo: Profesional
+Usuario: pro1
+Clave: Profesional123
+
+Cliente
+Tipo: Cliente
+Usuario: cliente_demo
+Clave: Cliente123
+```
+
+Si una base local antigua tiene credenciales demo desactualizadas:
+
+```powershell
+& 'C:\Users\x13\AppData\Local\Microsoft\WinGet\Packages\PHP.PHP.8.3_Microsoft.Winget.Source_8wekyb3d8bbwe\php.exe' -c '.local\php.ini' 'scripts\ensure-demo-accounts.php'
+```
+
+Si una base local antigua todavia muestra servicios heredados o de una industria especifica, normalizar el catalogo demo:
+
+```powershell
+& 'C:\Users\x13\AppData\Local\Microsoft\WinGet\Packages\PHP.PHP.8.3_Microsoft.Winget.Source_8wekyb3d8bbwe\php.exe' -c '.local\php.ini' 'scripts\normalize-demo-catalog.php'
+```
+
+Para validar build:
+
+```powershell
+npm run build
+npm audit --audit-level=moderate
+```
+
+Cuando se usa `start-frontend.cmd`, el backend PHP se levanta con `FRONTEND_REPLACES_PHP=1`. En ese modo, las URLs PHP antiguas redirigen hacia React. Si se necesita abrir una pantalla PHP antigua para depurar, se puede agregar `?legacy=1`.
+
+### Conexion con backend actual
+
+El frontend React ya intenta cargar datos reales desde:
+
+```text
+/php-api/api/saas-dashboard.php
+```
+
+En desarrollo, Vite redirige `/php-api` hacia `http://127.0.0.1:8000`. El endpoint requiere sesion de administrador PHP y entrega un `csrfToken` para mutaciones de reservas. Si no hay sesion admin, la UI queda en modo demo sin exponer datos privados.
+
+Para revisar con datos reales:
+
+```powershell
+cd C:\Users\x13\sistema_de_reserva
+.\start-frontend.cmd
+```
+
+Luego inicia sesion como admin en:
+
+```text
+http://127.0.0.1:8000/admin-login.php
+```
+
+Y abre:
+
+```text
+http://127.0.0.1:5173/
+```
 
 ## Caracteristicas funcionales
 

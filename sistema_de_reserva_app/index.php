@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/bootstrap.php';
 
+redirect_to_frontend('/');
+
 $pdo = app_pdo();
 $theme = current_theme();
 $settings = app_settings($pdo);

@@ -166,7 +166,7 @@ function render_flash_messages(): void
                 <div class="min-w-0 flex-1 break-words">
                     <?php echo escape_html((string) ($message['message'] ?? '')); ?>
                 </div>
-                <button class="shrink-0 rounded-full border border-current/15 px-2 py-0.5 text-sm font-semibold opacity-70 transition hover:opacity-100 focus:opacity-100" type="button" data-toast-close aria-label="Cerrar mensaje">×</button>
+                <button class="shrink-0 rounded-full border border-current/15 px-2 py-0.5 text-sm font-semibold opacity-70 transition hover:opacity-100 focus:opacity-100" type="button" data-toast-close aria-label="Cerrar mensaje">&times;</button>
             </div>
         <?php endforeach; ?>
     </div>
@@ -192,6 +192,59 @@ function render_flash_messages(): void
                     timeoutId = window.setTimeout(() => dismissToast(toast), 1800);
                 });
                 toast.querySelector('[data-toast-close]')?.addEventListener('click', () => dismissToast(toast));
+            });
+
+            window.appToast = (message, type = 'info') => {
+                const tones = {
+                    success: 'border-emerald-200 bg-emerald-50 text-emerald-900',
+                    error: 'border-rose-200 bg-rose-50 text-rose-900',
+                    info: 'border-slate-200 bg-white text-slate-900'
+                };
+                let stack = document.querySelector('[data-toast-stack]');
+                if (!stack) {
+                    stack = document.createElement('div');
+                    stack.dataset.toastStack = '1';
+                    stack.className = 'pointer-events-none fixed inset-x-0 top-4 z-50 mx-auto flex max-w-2xl flex-col gap-3 px-4';
+                    document.body.appendChild(stack);
+                }
+                const toast = document.createElement('div');
+                toast.className = `toast-enter pointer-events-auto flex items-start gap-3 rounded-2xl border px-4 py-3 shadow-xl ${tones[type] || tones.info}`;
+                toast.setAttribute('role', 'status');
+                toast.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
+                toast.innerHTML = `<div class="min-w-0 flex-1 break-words"></div><button class="shrink-0 rounded-full border border-current/15 px-2 py-0.5 text-sm font-semibold opacity-70 transition hover:opacity-100 focus:opacity-100" type="button" aria-label="Cerrar mensaje">&times;</button>`;
+                toast.firstElementChild.textContent = message;
+                toast.querySelector('button')?.addEventListener('click', () => dismissToast(toast));
+                stack.appendChild(toast);
+                window.setTimeout(() => dismissToast(toast), type === 'error' ? 7200 : 4600);
+            };
+
+            window.appConfirm = (message) => new Promise((resolve) => {
+                const dialog = document.createElement('dialog');
+                dialog.className = 'dialog-shell';
+                dialog.innerHTML = `
+                    <div class="dialog-body">
+                        <div class="section-eyebrow">Confirmacion</div>
+                        <h3 class="mt-2 text-2xl font-semibold text-slate-950">Revisar accion</h3>
+                        <p class="mt-3 text-sm leading-7 text-slate-600"></p>
+                        <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+                            <button class="btn-secondary" type="button" data-cancel>Volver</button>
+                            <button class="btn-danger-soft" type="button" data-confirm>Confirmar</button>
+                        </div>
+                    </div>`;
+                dialog.querySelector('p').textContent = message;
+                document.body.appendChild(dialog);
+                const close = (value) => {
+                    resolve(value);
+                    dialog.close();
+                    window.setTimeout(() => dialog.remove(), 120);
+                };
+                dialog.querySelector('[data-cancel]')?.addEventListener('click', () => close(false));
+                dialog.querySelector('[data-confirm]')?.addEventListener('click', () => close(true));
+                dialog.addEventListener('cancel', (event) => {
+                    event.preventDefault();
+                    close(false);
+                });
+                dialog.showModal();
             });
         })();
     </script>

@@ -704,6 +704,21 @@ function app_redirect(string $path, string $message = ''): void
     exit;
 }
 
+function frontend_base_url(): string
+{
+    return rtrim((string) (getenv('FRONTEND_URL') ?: 'http://127.0.0.1:5173'), '/');
+}
+
+function redirect_to_frontend(string $path): void
+{
+    if (($_GET['legacy'] ?? '') === '1' || (string) getenv('FRONTEND_REPLACES_PHP') !== '1') {
+        return;
+    }
+
+    header('Location: ' . frontend_base_url() . '/' . ltrim($path, '/'));
+    exit;
+}
+
 function require_role(string $sessionKey, string $expectedRole, string $redirect): void
 {
     if (empty($_SESSION[$sessionKey]) || (string) ($_SESSION['id_estado'] ?? '') !== $expectedRole) {

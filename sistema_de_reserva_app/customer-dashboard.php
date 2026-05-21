@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/bootstrap.php';
 
+redirect_to_frontend('/cliente');
+
 require_role('id_cliente', '3', 'index.php');
 
 $pdo = app_pdo();
@@ -73,20 +75,20 @@ $ownedReservationIds = array_map(static fn (array $reserva): int => (int) $reser
 </head>
 <body class="min-h-screen text-slate-900">
     <?php render_flash_messages(); ?>
-    <header class="sticky top-0 z-40 border-b border-white/60 bg-white/75 backdrop-blur-2xl">
+    <header class="premium-topbar">
         <div class="app-shell flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div class="flex min-w-0 items-center gap-4">
-                <div class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-slate-950 text-sm font-semibold text-white shadow-soft">
+                <div class="premium-brand-mark">
                     <?php echo escape_html(strtoupper(substr((string) ($_SESSION['nombre_cliente'] ?? 'C'), 0, 1))); ?>
                 </div>
                 <div class="min-w-0">
-                    <div class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Portal cliente</div>
+                    <div class="section-eyebrow">Portal cliente</div>
                     <h1 class="truncate text-lg font-semibold text-slate-950"><?php echo escape_html($_SESSION['nombre_cliente'] . ' ' . $_SESSION['apellido_cliente']); ?></h1>
                 </div>
             </div>
-            <div class="flex items-center gap-3">
-                <a href="customer/profile.php" class="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-950">Mi perfil</a>
-                <a href="logout.php" class="rounded-full px-4 py-2 text-sm font-semibold text-white" style="background: linear-gradient(135deg, var(--secondary), var(--primary));">Salir</a>
+            <div class="premium-nav">
+                <a href="customer/profile.php" class="premium-nav-link">Mi perfil</a>
+                <a href="logout.php" class="premium-nav-link premium-nav-link-active">Salir</a>
             </div>
         </div>
     </header>
@@ -95,14 +97,14 @@ $ownedReservationIds = array_map(static fn (array $reserva): int => (int) $reser
         <section class="surface-card surface-card-body">
             <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
                 <div class="min-w-0">
-                    <div class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Experiencia cliente</div>
-                    <h2 class="mt-3 max-w-4xl text-3xl font-semibold tracking-tight text-slate-950">Reserva con contexto, sin perder de vista tu agenda.</h2>
-                    <p class="mt-3 max-w-3xl text-sm leading-7 text-slate-600">Primero elige disciplina, servicio y profesional. Luego revisa disponibilidad y confirma el horario con feedback inmediato.</p>
+                    <div class="section-eyebrow">Experiencia cliente</div>
+                    <h2 class="page-title max-w-4xl text-balance">Reserva con contexto, sin perder de vista tu agenda.</h2>
+                    <p class="page-copy">Primero elige disciplina, servicio y profesional. Luego revisa disponibilidad y confirma el horario con feedback inmediato.</p>
                     <div class="mt-4 inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">UI cliente renovada</div>
                 </div>
                 <div class="grid gap-2 sm:grid-cols-2 lg:min-w-72">
-                    <a href="#nueva-reserva" class="rounded-2xl bg-slate-950 px-5 py-3 text-center text-sm font-semibold text-white shadow-soft">Nueva reserva</a>
-                    <a href="#agenda-cliente" class="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-700 shadow-sm">Ver agenda</a>
+                    <a href="#nueva-reserva" class="btn-primary">Nueva reserva</a>
+                    <a href="#agenda-cliente" class="btn-secondary">Ver agenda</a>
                 </div>
             </div>
         </section>
@@ -153,7 +155,7 @@ $ownedReservationIds = array_map(static fn (array $reserva): int => (int) $reser
                     </label>
                 </div>
             </div>
-            <div class="mt-6 min-h-[28rem]" id="calendar">
+            <div class="calendar-frame mt-6" id="calendar">
                 <div class="rounded-3xl border border-slate-200 bg-slate-50 p-5">
                     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
@@ -171,7 +173,7 @@ $ownedReservationIds = array_map(static fn (array $reserva): int => (int) $reser
                                     <div class="flex items-start justify-between gap-4">
                                         <div class="min-w-0">
                                             <div class="break-words font-semibold text-slate-950"><?php echo escape_html((string) $reserva['nombre_servicio']); ?></div>
-                                            <div class="mt-1 break-words text-sm text-slate-500"><?php echo escape_html((string) $reserva['name_professional']); ?> Â· <?php echo escape_html((string) ($reserva['nombre_disciplina'] ?: 'General')); ?></div>
+                            <div class="mt-1 break-words text-sm text-slate-500"><?php echo escape_html((string) $reserva['name_professional']); ?> · <?php echo escape_html((string) ($reserva['nombre_disciplina'] ?: 'General')); ?></div>
                                         </div>
                                         <span class="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"><?php echo escape_html((string) $reserva['estado_reserva']); ?></span>
                                     </div>
@@ -209,7 +211,7 @@ $ownedReservationIds = array_map(static fn (array $reserva): int => (int) $reser
                             <option value="">Selecciona servicio</option>
                             <?php foreach ($servicios as $servicio): ?>
                                 <option value="<?php echo escape_html((string) $servicio['id_servicio']); ?>" data-disciplina="<?php echo escape_html((string) ($servicio['id_disciplina'] ?? '')); ?>">
-                                    <?php echo escape_html($servicio['nombre_servicio'] . ' Â· ' . $servicio['duracion_minutos'] . ' min'); ?>
+                                    <?php echo escape_html($servicio['nombre_servicio'] . ' · ' . $servicio['duracion_minutos'] . ' min'); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -246,10 +248,10 @@ $ownedReservationIds = array_map(static fn (array $reserva): int => (int) $reser
             </section>
 
             <section class="surface-card surface-card-body">
-                <div class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">PrÃ³ximas reservas</div>
+                <div class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Proximas reservas</div>
                 <div class="mt-5 space-y-4">
                     <?php if ($reservas === array()): ?>
-                        <?php render_empty_state('Sin reservas aÃºn', 'Cuando agendes un servicio, aparecerÃ¡ aquÃ­ con su profesional y horario.'); ?>
+                        <?php render_empty_state('Sin reservas aun', 'Cuando agendes un servicio, aparecera aqui con su profesional y horario.'); ?>
                     <?php else: ?>
                         <?php foreach (array_slice($reservas, 0, 4) as $reserva): ?>
                             <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -286,7 +288,7 @@ $ownedReservationIds = array_map(static fn (array $reserva): int => (int) $reser
                     <input id="modal-start-input" class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" type="datetime-local">
                 </label>
                 <label class="block text-sm font-medium text-slate-600">
-                    TÃ©rmino
+                    Termino
                     <input id="modal-end-input" class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" type="datetime-local">
                 </label>
                 <label class="block text-sm font-medium text-slate-600">
@@ -346,7 +348,7 @@ $ownedReservationIds = array_map(static fn (array $reserva): int => (int) $reser
             const professionalLabel = document.getElementById('professional_id').selectedOptions[0]?.textContent || 'Pendiente';
             const day = document.getElementById('dia').value || 'Pendiente';
             const time = document.getElementById('hora_comienzo').value || '--:--';
-            reviewBox.textContent = `Confirmacion: ${serviceLabel} Â· ${professionalLabel} Â· ${day} ${time}`;
+            reviewBox.textContent = `Confirmacion: ${serviceLabel} · ${professionalLabel} · ${day} ${time}`;
         };
 
         const showFeedback = (message, type = 'info') => {
@@ -409,7 +411,7 @@ $ownedReservationIds = array_map(static fn (array $reserva): int => (int) $reser
                         ${visibleEvents.map((event) => `
                             <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                                 <div class="font-semibold text-slate-950">${escapeHtml(event.nombre_servicio || 'Reserva')}</div>
-                                <div class="mt-1 text-sm text-slate-500">${escapeHtml(event.name_professional || '')} Â· ${escapeHtml(event.nombre_disciplina || 'General')}</div>
+                                <div class="mt-1 text-sm text-slate-500">${escapeHtml(event.name_professional || '')} · ${escapeHtml(event.nombre_disciplina || 'General')}</div>
                                 <div class="mt-2 text-sm text-slate-700">${escapeHtml(event.start || '')}</div>
                             </article>
                         `).join('') || '<div class="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500">No hay reservas visibles todavia.</div>'}
@@ -455,7 +457,7 @@ $ownedReservationIds = array_map(static fn (array $reserva): int => (int) $reser
                 today: 'Hoy',
                 month: 'Mes',
                 week: 'Semana',
-                day: 'DÃ­a',
+                day: 'Dia',
                 list: 'Lista'
             },
             height: 'auto',
@@ -703,15 +705,16 @@ $ownedReservationIds = array_map(static fn (array $reserva): int => (int) $reser
             });
             const result = await response.json();
             if (!response.ok || !result.ok) {
-                alert(result.error || 'No se pudo actualizar la reserva');
+                showFeedback(result.error || 'No se pudo actualizar la reserva', 'error');
                 return;
             }
             modal.close();
             calendar.refetchEvents();
+            showFeedback('Reserva actualizada correctamente.', 'success');
         });
 
         document.getElementById('modal-delete-button').addEventListener('click', async () => {
-            if (!selectedEvent || !confirm('Â¿Cancelar esta reserva?')) {
+            if (!selectedEvent || !(await window.appConfirm('Cancelar esta reserva?'))) {
                 return;
             }
             const response = await fetch('bookings/api.php?accion=eliminar', {
@@ -727,11 +730,12 @@ $ownedReservationIds = array_map(static fn (array $reserva): int => (int) $reser
             });
             const result = await response.json();
             if (!response.ok || !result.ok) {
-                alert(result.error || 'No se pudo cancelar la reserva');
+                showFeedback(result.error || 'No se pudo cancelar la reserva', 'error');
                 return;
             }
             modal.close();
             calendar.refetchEvents();
+            showFeedback('Reserva cancelada correctamente.', 'success');
         });
     </script>
 </body>

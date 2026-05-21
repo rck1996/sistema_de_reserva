@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/bootstrap.php';
 
+redirect_to_frontend('/admin');
+
 require_role('id_admin', '1', 'admin-login.php');
 
 $pdo = app_pdo();
@@ -115,25 +117,25 @@ $waitlistCount = count($waitlist);
 </head>
 <body class="min-h-screen text-slate-900">
     <?php render_flash_messages(); ?>
-    <header class="sticky top-0 z-40 border-b border-white/60 bg-white/75 backdrop-blur-2xl">
+    <header class="premium-topbar">
         <div class="app-shell premium-shell flex flex-col gap-4 py-4 lg:flex-row lg:items-center lg:justify-between">
             <div class="flex min-w-0 items-center gap-4">
                 <?php if ($brandLogo !== ''): ?>
                     <img src="assets/branding/<?php echo escape_html($brandLogo); ?>" alt="Logo" class="h-11 w-11 rounded-2xl object-cover shadow-sm">
                 <?php else: ?>
-                    <div class="h-11 w-11 rounded-2xl bg-slate-950 shadow-sm"></div>
+                    <div class="premium-brand-mark"></div>
                 <?php endif; ?>
                 <div class="min-w-0">
-                    <div class="text-xs font-semibold uppercase tracking-[0.32em] text-slate-500">Command center</div>
+                    <div class="section-eyebrow">Command center</div>
                     <h1 class="truncate text-lg font-semibold text-slate-950"><?php echo escape_html(app_display_name()); ?></h1>
                 </div>
             </div>
-            <nav class="flex flex-wrap items-center gap-2 text-sm">
-                <a href="#overview" class="rounded-full border border-slate-200 bg-white px-4 py-2 text-slate-600 transition hover:border-slate-300 hover:text-slate-950">Dashboard</a>
-                <a href="#agenda" class="rounded-full border border-slate-200 bg-white px-4 py-2 text-slate-600 transition hover:border-slate-300 hover:text-slate-950">Calendario</a>
-                <a href="#modulos" class="rounded-full border border-slate-200 bg-white px-4 py-2 text-slate-600 transition hover:border-slate-300 hover:text-slate-950">Operacion</a>
-                <a href="admin-settings.php" class="rounded-full border border-slate-950 bg-slate-950 px-4 py-2 text-white transition hover:bg-slate-800">Configuracion</a>
-                <a href="logout.php" class="rounded-full px-4 py-2 font-semibold text-white" style="background: linear-gradient(135deg, var(--secondary), var(--primary));">Salir</a>
+            <nav class="premium-nav">
+                <a href="#overview" class="premium-nav-link">Dashboard</a>
+                <a href="#agenda" class="premium-nav-link">Calendario</a>
+                <a href="#modulos" class="premium-nav-link">Operacion</a>
+                <a href="admin-settings.php" class="premium-nav-link premium-nav-link-active">Configuracion</a>
+                <a href="logout.php" class="premium-nav-link">Salir</a>
             </nav>
         </div>
     </header>
@@ -142,41 +144,41 @@ $waitlistCount = count($waitlist);
         <section id="overview" class="surface-card surface-card-body overflow-hidden">
             <div class="flex flex-col gap-5 border-b border-slate-200 pb-6 xl:flex-row xl:items-end xl:justify-between">
                 <div class="min-w-0">
-                    <div class="text-xs font-semibold uppercase tracking-[0.32em] text-slate-500">Resumen operativo</div>
-                    <h2 class="mt-2 max-w-4xl text-3xl font-semibold tracking-tight text-slate-950">Agenda, demanda y operacion diaria en una vista clara.</h2>
-                    <p class="mt-3 max-w-3xl text-sm leading-7 text-slate-600">La configuracion sale del dashboard para reducir ruido. Esta pantalla queda enfocada en reservas, calendario y acciones frecuentes.</p>
+                    <div class="section-eyebrow">Resumen operativo</div>
+                    <h2 class="page-title max-w-4xl text-balance">Agenda, demanda y operacion diaria en una vista clara.</h2>
+                    <p class="page-copy">La configuracion sale del dashboard para reducir ruido. Esta pantalla queda enfocada en reservas, calendario y acciones frecuentes.</p>
                 </div>
                 <div class="grid gap-2 sm:grid-cols-3">
-                    <span class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-600"><?php echo $pendingReservations; ?> activas</span>
-                    <span class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-600"><?php echo $upcomingReservations; ?> futuras</span>
-                    <span class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-600"><?php echo $waitlistCount; ?> espera</span>
+                    <span class="premium-pill"><?php echo $pendingReservations; ?> activas</span>
+                    <span class="premium-pill"><?php echo $upcomingReservations; ?> futuras</span>
+                    <span class="premium-pill"><?php echo $waitlistCount; ?> espera</span>
                 </div>
             </div>
             <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-                <article class="rounded-[1.5rem] border border-white/70 bg-white/85 p-5 shadow-lg backdrop-blur-xl">
-                    <div class="text-sm text-slate-500">Reservas totales</div>
-                    <div class="mt-3 text-4xl font-semibold text-slate-950"><?php echo count($reservas); ?></div>
-                    <div class="mt-2 text-sm text-slate-500"><?php echo $upcomingReservations; ?> proximas</div>
+                <article class="metric-card">
+                    <div class="metric-label">Reservas totales</div>
+                    <div class="metric-value"><?php echo count($reservas); ?></div>
+                    <div class="metric-hint"><?php echo $upcomingReservations; ?> proximas</div>
                 </article>
-                <article class="rounded-[1.5rem] border border-white/70 bg-white/85 p-5 shadow-lg backdrop-blur-xl">
-                    <div class="text-sm text-slate-500">Pendientes</div>
-                    <div class="mt-3 text-4xl font-semibold text-slate-950"><?php echo $pendingReservations; ?></div>
-                    <div class="mt-2 text-sm text-slate-500"><?php echo $completedReservations; ?> completadas</div>
+                <article class="metric-card">
+                    <div class="metric-label">Pendientes</div>
+                    <div class="metric-value"><?php echo $pendingReservations; ?></div>
+                    <div class="metric-hint"><?php echo $completedReservations; ?> completadas</div>
                 </article>
-                <article class="rounded-[1.5rem] border border-white/70 bg-white/85 p-5 shadow-lg backdrop-blur-xl">
-                    <div class="text-sm text-slate-500">Profesional top</div>
-                    <div class="mt-3 break-words text-2xl font-semibold text-slate-950"><?php echo escape_html($topProfessionalName); ?></div>
-                    <div class="mt-2 text-sm text-slate-500"><?php echo $topProfessionalCount; ?> reservas</div>
+                <article class="metric-card">
+                    <div class="metric-label">Profesional top</div>
+                    <div class="metric-value text-2xl"><?php echo escape_html($topProfessionalName); ?></div>
+                    <div class="metric-hint"><?php echo $topProfessionalCount; ?> reservas</div>
                 </article>
-                <article class="rounded-[1.5rem] border border-white/70 bg-white/85 p-5 shadow-lg backdrop-blur-xl">
-                    <div class="text-sm text-slate-500">Servicio top</div>
-                    <div class="mt-3 break-words text-2xl font-semibold text-slate-950"><?php echo escape_html($topServiceName); ?></div>
-                    <div class="mt-2 text-sm text-slate-500"><?php echo $topServiceCount; ?> reservas</div>
+                <article class="metric-card">
+                    <div class="metric-label">Servicio top</div>
+                    <div class="metric-value text-2xl"><?php echo escape_html($topServiceName); ?></div>
+                    <div class="metric-hint"><?php echo $topServiceCount; ?> reservas</div>
                 </article>
-                <article class="rounded-[1.5rem] border border-white/70 bg-white/85 p-5 shadow-lg backdrop-blur-xl">
-                    <div class="text-sm text-slate-500">Alertas</div>
-                    <div class="mt-3 text-4xl font-semibold text-slate-950"><?php echo $notificationQueued; ?></div>
-                    <div class="mt-2 text-sm text-slate-500"><?php echo $cancelledReservations; ?> canceladas</div>
+                <article class="metric-card">
+                    <div class="metric-label">Alertas</div>
+                    <div class="metric-value"><?php echo $notificationQueued; ?></div>
+                    <div class="metric-hint"><?php echo $cancelledReservations; ?> canceladas</div>
                 </article>
             </div>
         </section>
@@ -218,7 +220,7 @@ $waitlistCount = count($waitlist);
                         </label>
                     </div>
                 </div>
-                <div id="admin-calendar"></div>
+                <div id="admin-calendar" class="calendar-frame"></div>
             </div>
 
             <aside class="space-y-6 min-w-0">
@@ -314,7 +316,7 @@ $waitlistCount = count($waitlist);
                         <?php render_empty_state('Sin profesionales', 'Agrega el primer integrante para abrir agenda.'); ?>
                     <?php else: ?>
                         <?php foreach ($profesionales as $profesional): ?>
-                            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4" data-filter-item="<?php echo escape_html(strtolower($profesional['name_professional'] . ' ' . ($profesional['nombre_disciplina'] ?: ''))); ?>">
+                            <div class="list-card" data-filter-item="<?php echo escape_html(strtolower($profesional['name_professional'] . ' ' . ($profesional['nombre_disciplina'] ?: ''))); ?>">
                                 <div class="flex items-start justify-between gap-4">
                                     <div class="min-w-0">
                                         <div class="break-words font-semibold text-slate-950"><?php echo escape_html($profesional['name_professional']); ?></div>
@@ -355,7 +357,7 @@ $waitlistCount = count($waitlist);
                         <?php render_empty_state('Sin clientes', 'Crea clientes en segundos y agenda desde el calendario.'); ?>
                     <?php else: ?>
                         <?php foreach ($clientes as $cliente): ?>
-                            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4" data-filter-item="<?php echo escape_html(strtolower($cliente['nombre_cliente'] . ' ' . $cliente['apellido_cliente'] . ' ' . $cliente['telefono_cliente'])); ?>">
+                            <div class="list-card" data-filter-item="<?php echo escape_html(strtolower($cliente['nombre_cliente'] . ' ' . $cliente['apellido_cliente'] . ' ' . $cliente['telefono_cliente'])); ?>">
                                 <div class="flex items-start justify-between gap-4">
                                     <div class="min-w-0">
                                         <div class="break-words font-semibold text-slate-950"><?php echo escape_html($cliente['nombre_cliente'] . ' ' . $cliente['apellido_cliente']); ?></div>
@@ -403,7 +405,7 @@ $waitlistCount = count($waitlist);
                     </select>
                     <input class="field-input" name="img_servicio" type="file" accept=".jpg,.jpeg,.png,.webp" required aria-label="Imagen del servicio">
                     <textarea class="field-textarea min-h-24" name="descripcion_servicio" placeholder="Descripcion" required></textarea>
-                    <button class="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white" type="submit">Crear servicio</button>
+                    <button class="btn-primary" type="submit">Crear servicio</button>
                 </form>
                 <input id="service-search" class="field-input mt-5" placeholder="Buscar servicio">
                 <div class="mt-4 max-h-[30rem] space-y-3 overflow-y-auto pr-1" data-filter-list="services">
@@ -411,7 +413,7 @@ $waitlistCount = count($waitlist);
                         <?php render_empty_state('Sin servicios', 'Crea servicios para habilitar reservas.'); ?>
                     <?php else: ?>
                         <?php foreach ($servicios as $servicio): ?>
-                            <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4" data-filter-item="<?php echo escape_html(strtolower($servicio['nombre_servicio'] . ' ' . ($servicio['nombre_disciplina'] ?: ''))); ?>">
+                            <div class="list-card" data-filter-item="<?php echo escape_html(strtolower($servicio['nombre_servicio'] . ' ' . ($servicio['nombre_disciplina'] ?: ''))); ?>">
                                 <div class="flex items-start justify-between gap-4">
                                     <div class="min-w-0">
                                         <div class="break-words font-semibold text-slate-950"><?php echo escape_html($servicio['nombre_servicio']); ?></div>
@@ -484,8 +486,8 @@ $waitlistCount = count($waitlist);
             </div>
             <div class="mt-6 flex flex-col gap-3 sm:flex-row">
                 <a id="modal-edit-link" class="inline-flex items-center justify-center rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700" href="#">Abrir edicion completa</a>
-                <button id="modal-save-button" class="inline-flex items-center justify-center rounded-2xl px-5 py-3 text-sm font-semibold text-white" style="background: linear-gradient(135deg, var(--accent), var(--primary));" type="button">Guardar cambios</button>
-                <button id="modal-delete-button" class="inline-flex items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-5 py-3 text-sm font-semibold text-rose-600" type="button">Cancelar reserva</button>
+                <button id="modal-save-button" class="btn-accent" type="button">Guardar cambios</button>
+                <button id="modal-delete-button" class="btn-danger-soft" type="button">Cancelar reserva</button>
             </div>
         </div>
     </dialog>
@@ -598,7 +600,7 @@ $waitlistCount = count($waitlist);
                 try {
                     await persistAdminEvent(event, { start: event.start.toISOString(), end: event.end.toISOString() });
                 } catch (error) {
-                    alert(error.message || 'No se pudo mover la reserva');
+                    window.appToast?.(error.message || 'No se pudo mover la reserva', 'error');
                     revert();
                 }
             },
@@ -606,7 +608,7 @@ $waitlistCount = count($waitlist);
                 try {
                     await persistAdminEvent(event, { start: event.start.toISOString(), end: event.end.toISOString() });
                 } catch (error) {
-                    alert(error.message || 'No se pudo ajustar la reserva');
+                    window.appToast?.(error.message || 'No se pudo ajustar la reserva', 'error');
                     revert();
                 }
             }
@@ -660,12 +662,12 @@ $waitlistCount = count($waitlist);
                 modal.close();
                 calendar.refetchEvents();
             } catch (error) {
-                alert(error.message || 'No se pudo guardar la reserva');
+                window.appToast?.(error.message || 'No se pudo guardar la reserva', 'error');
             }
         });
 
         document.getElementById('modal-delete-button').addEventListener('click', async () => {
-            if (!selectedEvent || !confirm('Eliminar esta reserva?')) {
+            if (!selectedEvent || !(await window.appConfirm('Eliminar esta reserva?'))) {
                 return;
             }
             const response = await fetch('bookings/api.php?accion=eliminar', {
@@ -681,11 +683,12 @@ $waitlistCount = count($waitlist);
             });
             const result = await response.json();
             if (!response.ok || !result.ok) {
-                alert(result.error || 'No se pudo eliminar la reserva');
+                window.appToast?.(result.error || 'No se pudo eliminar la reserva', 'error');
                 return;
             }
             modal.close();
             calendar.refetchEvents();
+            window.appToast?.('Reserva cancelada correctamente.', 'success');
         });
 
         const bindTextFilter = (inputId, listSelector) => {

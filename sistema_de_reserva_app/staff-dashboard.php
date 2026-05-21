@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/bootstrap.php';
 
+redirect_to_frontend('/profesional');
+
 require_role('id_professional', '2', 'staff-login.php');
 
 $pdo = app_pdo();
@@ -72,20 +74,20 @@ $scheduleSummary = professional_schedule_summary($pdo, $professionalId);
 </head>
 <body class="min-h-screen text-slate-900">
     <?php render_flash_messages(); ?>
-    <header class="sticky top-0 z-40 border-b border-white/60 bg-white/75 backdrop-blur-2xl">
+    <header class="premium-topbar">
         <div class="app-shell flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div class="flex min-w-0 items-center gap-4">
-                <div class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl text-sm font-semibold text-white shadow-soft" style="background: linear-gradient(135deg, var(--accent), var(--primary));">
+                <div class="premium-brand-mark" style="background: linear-gradient(135deg, var(--accent), var(--primary));">
                     <?php echo escape_html(strtoupper(substr((string) ($_SESSION['name_professional'] ?? 'P'), 0, 1))); ?>
                 </div>
                 <div class="min-w-0">
-                    <div class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Agenda profesional</div>
+                    <div class="section-eyebrow">Agenda profesional</div>
                     <h1 class="truncate text-lg font-semibold text-slate-950"><?php echo escape_html((string) ($_SESSION['name_professional'] ?? 'Profesional')); ?></h1>
                 </div>
             </div>
-            <div class="flex items-center gap-3">
-                <a href="staff/profile.php" class="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-950">Mi perfil</a>
-                <a href="logout.php" class="rounded-full px-4 py-2 text-sm font-semibold text-white" style="background: linear-gradient(135deg, var(--accent), var(--primary));">Salir</a>
+            <div class="premium-nav">
+                <a href="staff/profile.php" class="premium-nav-link">Mi perfil</a>
+                <a href="logout.php" class="premium-nav-link premium-nav-link-active">Salir</a>
             </div>
         </div>
     </header>
@@ -96,8 +98,8 @@ $scheduleSummary = professional_schedule_summary($pdo, $professionalId);
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                     <div>
                         <div class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Calendario</div>
-                        <h2 class="mt-2 text-2xl font-semibold text-slate-950">Disponibilidad y reservas en una sola vista</h2>
-                        <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Gestiona tu dia con drag and drop, filtros rapidos y creacion de reservas con feedback inmediato.</p>
+                        <h2 class="page-title">Disponibilidad y reservas en una sola vista</h2>
+                        <p class="page-copy">Gestiona tu dia con drag and drop, filtros rapidos y creacion de reservas con feedback inmediato.</p>
                     </div>
                     <div class="flex flex-wrap gap-2 text-sm text-slate-500">
                         <span class="rounded-full border border-slate-200 bg-slate-50 px-4 py-2">Horario <?php echo escape_html($hours['opening']); ?> - <?php echo escape_html($hours['closing']); ?></span>
@@ -141,13 +143,13 @@ $scheduleSummary = professional_schedule_summary($pdo, $professionalId);
                     </label>
                 </div>
             </div>
-            <div class="mt-5" id="calendar"></div>
+            <div class="calendar-frame mt-5" id="calendar"></div>
         </section>
 
         <aside class="min-w-0 space-y-6">
             <section class="surface-card surface-card-body">
                 <div class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Nueva reserva</div>
-                <h3 class="mt-2 text-xl font-semibold">Agendamiento rÃ¡pido</h3>
+                <h3 class="mt-2 text-xl font-semibold">Agendamiento rapido</h3>
                 <form id="pro-booking-form" class="mt-5 space-y-4">
                     <label class="block text-sm font-medium text-slate-600">Cliente
                         <select class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-slate-400" id="txt_cliente" required>
@@ -206,7 +208,7 @@ $scheduleSummary = professional_schedule_summary($pdo, $professionalId);
             <div class="mt-6 grid gap-4 sm:grid-cols-2 text-sm text-slate-600">
                 <div><strong class="block text-slate-900">Cliente</strong><span id="modal-customer"></span></div>
                 <div><strong class="block text-slate-900">Disciplina</strong><span id="modal-discipline"></span></div>
-                <div><strong class="block text-slate-900">TelÃ©fono</strong><span id="modal-phone"></span></div>
+                <div><strong class="block text-slate-900">Telefono</strong><span id="modal-phone"></span></div>
                 <div><strong class="block text-slate-900">Servicio</strong><span id="modal-service"></span></div>
             </div>
             <div class="mt-6 grid gap-4 sm:grid-cols-2">
@@ -215,7 +217,7 @@ $scheduleSummary = professional_schedule_summary($pdo, $professionalId);
                     <input id="modal-start-input" class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" type="datetime-local">
                 </label>
                 <label class="block text-sm font-medium text-slate-600">
-                    TÃ©rmino
+                    Termino
                     <input id="modal-end-input" class="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3" type="datetime-local">
                 </label>
                 <label class="block text-sm font-medium text-slate-600">
@@ -235,8 +237,8 @@ $scheduleSummary = professional_schedule_summary($pdo, $professionalId);
                 </label>
             </div>
             <div class="mt-6 flex flex-col gap-3 sm:flex-row">
-                <button id="modal-save-button" class="inline-flex items-center justify-center rounded-2xl px-6 py-3 text-sm font-semibold text-white shadow-lg" style="background: linear-gradient(135deg, var(--accent), var(--primary));" type="button">Guardar cambios</button>
-                <button id="modal-delete-button" class="inline-flex items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-6 py-3 text-sm font-semibold text-rose-600" type="button">Eliminar reserva</button>
+                <button id="modal-save-button" class="btn-accent" type="button">Guardar cambios</button>
+                <button id="modal-delete-button" class="btn-danger-soft" type="button">Eliminar reserva</button>
             </div>
         </div>
     </dialog>
@@ -311,7 +313,7 @@ $scheduleSummary = professional_schedule_summary($pdo, $professionalId);
                 today: 'Hoy',
                 month: 'Mes',
                 week: 'Semana',
-                day: 'DÃ­a',
+                day: 'Dia',
                 list: 'Lista'
             },
             height: 'auto',
@@ -381,7 +383,7 @@ $scheduleSummary = professional_schedule_summary($pdo, $professionalId);
                 try {
                     await persistEvent(event);
                 } catch (error) {
-                    alert(error.message || 'No se pudo mover la reserva');
+                    showFeedback(error.message || 'No se pudo mover la reserva', 'error');
                     revert();
                 }
             },
@@ -393,7 +395,7 @@ $scheduleSummary = professional_schedule_summary($pdo, $professionalId);
                 try {
                     await persistEvent(event);
                 } catch (error) {
-                    alert(error.message || 'No se pudo ajustar la reserva');
+                    showFeedback(error.message || 'No se pudo ajustar la reserva', 'error');
                     revert();
                 }
             },
@@ -486,12 +488,12 @@ $scheduleSummary = professional_schedule_summary($pdo, $professionalId);
                 modal.close();
                 calendar.refetchEvents();
             } catch (error) {
-                alert(error.message || 'No se pudo guardar la reserva');
+                showFeedback(error.message || 'No se pudo guardar la reserva', 'error');
             }
         });
 
         document.getElementById('modal-delete-button').addEventListener('click', async () => {
-            if (!selectedEvent || !confirm('Â¿Eliminar esta reserva?')) {
+            if (!selectedEvent || !(await window.appConfirm('Eliminar esta reserva?'))) {
                 return;
             }
             const response = await fetch('bookings/api.php?accion=eliminar', {
@@ -507,12 +509,13 @@ $scheduleSummary = professional_schedule_summary($pdo, $professionalId);
             });
             const result = await response.json();
             if (!response.ok || !result.ok) {
-                alert(result.error || 'No se pudo eliminar la reserva');
+                showFeedback(result.error || 'No se pudo eliminar la reserva', 'error');
                 return;
             }
             modal.close();
             selectedEvent = null;
             calendar.refetchEvents();
+            showFeedback('Reserva eliminada correctamente.', 'success');
         });
     </script>
 </body>

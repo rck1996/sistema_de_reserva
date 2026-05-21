@@ -2,6 +2,32 @@
 
 Historial resumido de la evolucion del proyecto `sistema_de_reserva`.
 
+## 0.2.0 - Frontend SaaS premium experimental
+
+Fecha: 2026-05-20
+
+Incluye:
+
+- nueva carpeta `frontend/` con React + TypeScript para migracion incremental
+- Vite, Tailwind CSS v4, Framer Motion, TanStack React Query, Zustand, React Hook Form, Zod y FullCalendar React
+- layout SaaS premium con sidebar, navegacion movil inferior, hero, metricas animadas, calendario interactivo y drawer lateral
+- componentes UI reutilizables: botones, cards, badges, inputs y drawer
+- store local con Zustand y datos demo para revisar UI/UX sin depender de sesiones PHP
+- conexion opcional a datos reales mediante `api/saas-dashboard.php`
+- reemplazo de experiencia publica, login, cliente, profesional y admin por rutas React
+- nuevos endpoints JSON para auth, datos publicos, cliente y profesional
+- redireccion controlada de pantallas PHP antiguas hacia React cuando `FRONTEND_REPLACES_PHP=1`
+- persistencia de cambios de reserva desde React usando endpoint PHP existente y CSRF
+- script `start-frontend.cmd` para levantar backend PHP y frontend React juntos
+- code splitting del calendario para reducir el bundle inicial
+- `npm audit --audit-level=moderate` validado con 0 vulnerabilidades
+- `npm run build` validado correctamente
+- pantalla cliente separada del dashboard generico: inicio, reserva guiada, agenda visual, historial y perfil
+- flujo cliente con filtro disciplina -> servicio -> profesional y creacion real de reservas contra backend PHP
+- calendario cliente en modo lectura para evitar mutaciones de staff/admin desde una cuenta cliente
+- CSRF de autenticacion endurecido para recuperar token fresco si el formulario se envia antes de cargar la sesion
+- script `scripts/normalize-demo-catalog.php` para limpiar datos demo heredados y dejar servicios multidisciplinarios
+
 ## En desarrollo - 2026-05-14
 
 Incluye:
