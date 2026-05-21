@@ -32,6 +32,7 @@ Incluye:
 - WhatsApp documentado como integracion opcional desactivada por defecto, con guia de activacion y pruebas
 - lista de espera corregida para no generar notificaciones WhatsApp si `notifications_whatsapp_enabled` esta inactivo
 - paleta de comandos real con `Ctrl+K`, busqueda, navegacion por teclado y acciones por rol
+- login React con opcion `Recordarme por 30 dias` y timeout extendido sin cerrar sesion al volver al inicio
 
 ## En desarrollo - 2026-05-14
 

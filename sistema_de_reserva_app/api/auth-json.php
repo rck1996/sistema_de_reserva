@@ -34,18 +34,18 @@ try {
     }
 
     if ($action === 'login-admin') {
-        json_login_user($pdo, 'admin', 'user_admin', 'pass_admin', validate_email_address(request_post_string('email')), request_post_string('password'), array(
+        json_login_user($pdo, 'admin', 'user_admin', 'pass_admin', validate_email_address(request_post_string('email')), request_post_string('password'), request_post_string('remember_me', false) === '1', array(
             'id_admin' => 'id_admin',
             'id_estado' => 'id_estado',
         ), 'admin', '1');
     } elseif ($action === 'login-staff') {
-        json_login_user($pdo, 'professionals', 'user_professional', 'pass_professional', request_post_string('username'), request_post_string('password'), array(
+        json_login_user($pdo, 'professionals', 'user_professional', 'pass_professional', request_post_string('username'), request_post_string('password'), request_post_string('remember_me', false) === '1', array(
             'id_professional' => 'id_professional',
             'name_professional' => 'name_professional',
             'id_estado' => 'id_estado',
         ), 'staff', '2');
     } elseif ($action === 'login-customer') {
-        json_login_user($pdo, 'clientes', 'user_cliente', 'pass_cliente', request_post_string('username'), request_post_string('password'), array(
+        json_login_user($pdo, 'clientes', 'user_cliente', 'pass_cliente', request_post_string('username'), request_post_string('password'), request_post_string('remember_me', false) === '1', array(
             'id_cliente' => 'id_cliente',
             'nombre_cliente' => 'nombre_cliente',
             'apellido_cliente' => 'apellido_cliente',
@@ -101,7 +101,7 @@ try {
     echo json_encode(array('ok' => false, 'error' => $exception->getMessage(), 'csrfToken' => csrf_token()));
 }
 
-function json_login_user(PDO $pdo, string $table, string $userColumn, string $passwordColumn, string $lookupValue, string $password, array $sessionMap, string $role, string $roleId): void
+function json_login_user(PDO $pdo, string $table, string $userColumn, string $passwordColumn, string $lookupValue, string $password, bool $remember, array $sessionMap, string $role, string $roleId): void
 {
     $stmt = $pdo->prepare("SELECT * FROM {$table} WHERE {$userColumn} = :user AND id_estado = :id_estado LIMIT 1");
     $user = fetch_one($stmt, array(':user' => $lookupValue, ':id_estado' => $roleId));
@@ -119,10 +119,13 @@ function json_login_user(PDO $pdo, string $table, string $userColumn, string $pa
     session_regenerate_id(true);
     $_SESSION['last_activity_at'] = time();
     $_SESSION['json_role'] = $role;
+    $_SESSION['remember_me'] = $remember ? 1 : 0;
 
     foreach ($sessionMap as $sessionKey => $column) {
         $_SESSION[$sessionKey] = $user[$column];
     }
+
+    persist_session_cookie($remember);
 }
 
 function current_json_session(): array

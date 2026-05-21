@@ -95,6 +95,14 @@ Usuario: cliente_demo
 Clave: Cliente123
 ```
 
+Sesion:
+
+- volver a `Inicio` no cierra la sesion
+- el boton `Salir` es el unico flujo que destruye la sesion
+- sin marcar `Recordarme`, la sesion expira tras 2 horas de inactividad
+- marcando `Recordarme por 30 dias`, la cookie queda persistente y el timeout interno se extiende a 30 dias
+- usar `Recordarme` solo en equipos personales
+
 Si una base local antigua tiene credenciales demo desactualizadas:
 
 ```powershell

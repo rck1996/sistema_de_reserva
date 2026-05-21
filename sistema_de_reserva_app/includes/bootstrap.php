@@ -37,7 +37,7 @@ function configure_session_security(): void
 
 function enforce_session_timeout(): void
 {
-    $timeoutSeconds = 7200;
+    $timeoutSeconds = !empty($_SESSION['remember_me']) ? 2592000 : 7200;
     $now = time();
     $lastActivity = (int) ($_SESSION['last_activity_at'] ?? 0);
 
@@ -50,6 +50,27 @@ function enforce_session_timeout(): void
     }
 
     $_SESSION['last_activity_at'] = $now;
+}
+
+function persist_session_cookie(bool $remember): void
+{
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        return;
+    }
+
+    $params = session_get_cookie_params();
+    setcookie(
+        session_name(),
+        session_id(),
+        array(
+            'expires' => $remember ? time() + 2592000 : 0,
+            'path' => $params['path'] ?: '/',
+            'domain' => $params['domain'] ?: '',
+            'secure' => (bool) $params['secure'],
+            'httponly' => (bool) $params['httponly'],
+            'samesite' => $params['samesite'] ?? 'Lax',
+        )
+    );
 }
 
 function app_pdo(): PDO

@@ -170,6 +170,10 @@ function LoginPage({ csrfToken, onNavigate }: { csrfToken: string; onNavigate: (
           <form className="mt-6 space-y-4" onSubmit={(event) => submitForm(event, login.mutate, action)}>
             {mode === 'admin' ? <Input name="email" type="email" placeholder="admin@sistema.local" required /> : <Input name="username" placeholder={mode === 'staff' ? 'pro1' : 'usuario cliente'} required />}
             <Input name="password" type="password" placeholder="Contraseña" required />
+            <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.05] p-3 text-sm text-slate-300">
+              <input name="remember_me" value="1" type="checkbox" className="mt-1 h-4 w-4 rounded border-white/20 bg-zinc-950 accent-cyan-300" />
+              <span><span className="font-semibold text-white">Recordarme por 30 dias</span><span className="mt-1 block text-xs leading-5 text-slate-500">Usalo solo en equipos personales. En equipos compartidos deja esta opcion desactivada.</span></span>
+            </label>
             {login.error ? <p className="rounded-2xl border border-rose-300/20 bg-rose-400/10 p-3 text-sm text-rose-100">{login.error.message}</p> : null}
             <Button className="w-full" variant="primary" type="submit">Ingresar</Button>
           </form>
