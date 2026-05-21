@@ -2,6 +2,19 @@
 
 Sistema web de reservas multidisciplinario, configurable y desacoplado de una industria especifica. La aplicacion permite operar agendas, clientes, profesionales, servicios y branding desde una sola plataforma.
 
+## Licencia
+
+Este proyecto es software propietario de `rck1996.com`.
+
+No es open source. No se permite copiar, redistribuir, revender, sublicenciar,
+publicar ni reutilizar el codigo fuente total o parcialmente sin autorizacion
+escrita.
+
+Ver:
+
+- `LICENSE.md`
+- `NOTICE.md`
+
 La version estable actual mantiene PHP + SQLite para operar el sistema completo. En paralelo se agrego una nueva base `frontend/` con React + TypeScript para migrar la experiencia hacia un SaaS premium moderno sin romper los flujos existentes.
 
 ## Resumen

@@ -33,6 +33,7 @@ Incluye:
 - lista de espera corregida para no generar notificaciones WhatsApp si `notifications_whatsapp_enabled` esta inactivo
 - paleta de comandos real con `Ctrl+K`, busqueda, navegacion por teclado y acciones por rol
 - login React con opcion `Recordarme por 30 dias` y timeout extendido sin cerrar sesion al volver al inicio
+- licencia propietaria rck1996.com aplicada con `LICENSE.md`, `NOTICE.md` y aviso en README
 
 ## En desarrollo - 2026-05-14
 
