@@ -54,6 +54,28 @@ Profesional:  http://127.0.0.1:5173/profesional
 Admin:        http://127.0.0.1:5173/admin
 ```
 
+Atajo global:
+
+```text
+Ctrl+K abre la paleta de comandos.
+```
+
+Uso de la paleta:
+
+- escribir para buscar una pantalla o accion
+- usar flechas arriba/abajo para moverse
+- presionar `Enter` para ejecutar
+- presionar `Esc` o hacer clic fuera para cerrar
+
+Acciones disponibles actualmente:
+
+- navegacion por secciones del panel activo
+- crear reserva desde cliente
+- abrir agenda del cliente
+- abrir configuracion de admin
+- abrir calendario, clientes y estadisticas
+- cerrar sesion
+
 Credenciales demo:
 
 ```text

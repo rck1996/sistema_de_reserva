@@ -31,6 +31,7 @@ Incluye:
 - configuracion, reglas basicas, clientes, disciplinas y servicios editables desde el panel React con CSRF
 - WhatsApp documentado como integracion opcional desactivada por defecto, con guia de activacion y pruebas
 - lista de espera corregida para no generar notificaciones WhatsApp si `notifications_whatsapp_enabled` esta inactivo
+- paleta de comandos real con `Ctrl+K`, busqueda, navegacion por teclado y acciones por rol
 
 ## En desarrollo - 2026-05-14
 

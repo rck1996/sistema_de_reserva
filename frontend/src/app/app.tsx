@@ -205,7 +205,18 @@ function CustomerPage({ onNavigate, onLogout }: { onNavigate: (route: string) =>
   ];
 
   return (
-    <AppShell activeSection={activeSection} onSectionChange={setActiveSection} onNavigateHome={() => onNavigate('home')} navItems={navItems}>
+    <AppShell
+      activeSection={activeSection}
+      onSectionChange={setActiveSection}
+      onNavigateHome={() => onNavigate('home')}
+      navItems={navItems}
+      commandItems={[
+        { id: 'customer-new-booking', label: 'Crear nueva reserva', description: 'Cliente', icon: CalendarDays, keywords: ['reservar', 'hora', 'agenda'], action: () => setActiveSection('reservar') },
+        { id: 'customer-open-agenda', label: 'Abrir mi agenda', description: 'Cliente', icon: Clock3, keywords: ['calendario', 'reservas'], action: () => setActiveSection('agenda') },
+        { id: 'customer-open-profile', label: 'Ver mi perfil', description: 'Cliente', icon: UserRound, keywords: ['cuenta', 'datos'], action: () => setActiveSection('perfil') },
+        { id: 'customer-logout', label: 'Cerrar sesion', description: 'Sesion', icon: LogOut, keywords: ['salir', 'logout'], action: onLogout },
+      ]}
+    >
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <Badge tone="cyan">Cliente</Badge>
@@ -431,7 +442,18 @@ function DashboardShell({ title, onNavigate, onLogout, data, loading }: { title:
   const bookings = useBookingStore((state) => state.bookings);
   const metrics = useMemo(() => data?.metrics ?? { activeBookings: bookings.filter((b) => !['cancelled', 'completed'].includes(b.status)).length, estimatedRevenue: bookings.reduce((sum, b) => sum + b.revenue, 0), cancelledBookings: 0, upcomingBookings: bookings.length }, [bookings, data]);
   return (
-    <AppShell activeSection={activeSection} onSectionChange={setActiveSection} onNavigateHome={() => onNavigate('home')}>
+    <AppShell
+      activeSection={activeSection}
+      onSectionChange={setActiveSection}
+      onNavigateHome={() => onNavigate('home')}
+      commandItems={[
+        { id: 'shell-calendar', label: 'Abrir calendario', description: title, icon: CalendarDays, keywords: ['agenda', 'reservas'], action: () => setActiveSection('calendario') },
+        { id: 'shell-people', label: title === 'Admin' ? 'Abrir clientes y staff' : 'Abrir clientes', description: title, icon: UserRound, keywords: ['clientes', 'personas', 'staff'], action: () => setActiveSection('clientes') },
+        { id: 'shell-stats', label: 'Abrir estadisticas', description: title, icon: Sparkles, keywords: ['metricas', 'analitica', 'kpi'], action: () => setActiveSection('estadisticas') },
+        { id: 'shell-config', label: 'Abrir configuracion', description: title, icon: Settings, keywords: ['ajustes', 'branding', 'servicios'], action: () => setActiveSection('configuracion') },
+        { id: 'shell-logout', label: 'Cerrar sesion', description: 'Sesion', icon: LogOut, keywords: ['salir', 'logout'], action: onLogout },
+      ]}
+    >
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
           <Badge tone="cyan">{title}</Badge>
