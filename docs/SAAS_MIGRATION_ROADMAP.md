@@ -235,3 +235,63 @@ Cada fase debe incluir:
 - validacion de build/lint/sintaxis
 - commit independiente
 
+## Prueba Local Fase 1
+
+1. Crear `.env` desde `.env.example`.
+2. Configurar `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`.
+3. Crear usuario y base en PostgreSQL.
+
+Ejemplo local:
+
+```powershell
+$env:PGPASSWORD='postgres_password'
+& 'C:\Program Files\PostgreSQL\17\bin\psql.exe' -h localhost -U postgres -d postgres -c "CREATE USER sistema_de_reserva WITH PASSWORD 'change_me';"
+& 'C:\Program Files\PostgreSQL\17\bin\psql.exe' -h localhost -U postgres -d postgres -c "CREATE DATABASE sistema_de_reserva OWNER sistema_de_reserva;"
+```
+
+4. Ejecutar migraciones:
+
+```powershell
+.\backend-migrate.cmd
+```
+
+5. Revisar estado:
+
+```powershell
+.\backend-migration-status.cmd
+```
+
+Si todo esta aplicado:
+
+```text
+[x] 001_create_core_saas_schema.sql
+[x] 002_seed_demo_company.sql
+```
+
+6. Probar healthcheck:
+
+```text
+http://127.0.0.1:8000/backend/api/v1/health.php
+```
+
+Validacion local realizada en esta rama:
+
+- `pdo_pgsql` habilitado en PHP local
+- base `sistema_de_reserva` creada en PostgreSQL 17
+- usuario local `sistema_de_reserva` creado
+- migraciones ejecutadas correctamente
+- tablas creadas: `companies`, `users`, `refresh_tokens`, `company_settings`, `disciplines`, `services`, `professionals`, `professional_services`, `customers`, `bookings`, `payments`, `audit_log`, `schema_migrations`
+
+Resultado esperado si PostgreSQL esta configurado:
+
+```json
+{
+  "ok": true,
+  "api": "v1",
+  "service": "sistema_de_reserva",
+  "database": {
+    "driver": "pgsql",
+    "connected": true
+  }
+}
+```
