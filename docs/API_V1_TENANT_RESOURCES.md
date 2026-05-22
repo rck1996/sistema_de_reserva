@@ -112,6 +112,40 @@ Payload:
 }
 ```
 
+```http
+PATCH /api/v1/customers.php
+Content-Type: application/json
+```
+
+Actualiza un cliente de la empresa autenticada.
+
+Roles permitidos:
+
+- `super_admin`
+- `admin_empresa`
+- `staff`
+
+Payload:
+
+```json
+{
+  "id": "uuid-cliente",
+  "first_name": "Camila",
+  "last_name": "Rojas",
+  "email": "camila.rojas@demo.local",
+  "phone": "+56911111111",
+  "notes": "Cliente actualizado",
+  "is_active": true
+}
+```
+
+Reglas:
+
+- El cliente debe pertenecer al `company_id` del JWT.
+- No se acepta `company_id` desde frontend.
+- `admin_empresa` puede actualizar clientes solo dentro de su empresa.
+- `staff` puede actualizar clientes dentro de su empresa para flujos operativos.
+
 ## Reservas
 
 ```http

@@ -46,6 +46,8 @@ Incluye:
 - dashboard API v1 con metricas reales PostgreSQL y primera pantalla React protegida `/saas-dashboard`
 - calendario SaaS v1 protegido por JWT con FullCalendar, filtros, drawer y acciones de estado sobre PostgreSQL
 - pantalla `/saas-customers` con búsqueda, listado responsive y creación de clientes sobre API v1 PostgreSQL
+- actualizacion de clientes API v1 con permisos SaaS por rol y aislamiento tenant desde JWT
+- README ampliado con modelo de negocio SaaS, roles y reglas multiempresa
 
 ## En desarrollo - 2026-05-14
 

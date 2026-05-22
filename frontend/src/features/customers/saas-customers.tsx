@@ -5,8 +5,8 @@ import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader } from '../../components/ui/card';
 import { Drawer } from '../../components/ui/drawer';
-import { Input, Textarea } from '../../components/ui/input';
-import { createSaasCustomer, listSaasCustomers } from '../../services/api-v1-client';
+import { Input, Select, Textarea } from '../../components/ui/input';
+import { createSaasCustomer, listSaasCustomers, updateSaasCustomer, type SaasCustomer } from '../../services/api-v1-client';
 
 type SaasCustomersProps = {
   accessToken: string;
@@ -16,6 +16,7 @@ export function SaasCustomers({ accessToken }: SaasCustomersProps) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<SaasCustomer | null>(null);
   const customersQuery = useQuery({
     queryKey: ['saas-customers', accessToken],
     queryFn: () => listSaasCustomers(accessToken),
@@ -48,11 +49,53 @@ export function SaasCustomers({ accessToken }: SaasCustomersProps) {
       setDrawerOpen(false);
     },
   });
+  const updateCustomer = useMutation({
+    mutationFn: (form: FormData) => {
+      if (!editingCustomer) throw new Error('Cliente no seleccionado.');
+
+      return updateSaasCustomer(accessToken, {
+        id: editingCustomer.id,
+        first_name: String(form.get('first_name') ?? ''),
+        last_name: String(form.get('last_name') ?? ''),
+        email: String(form.get('email') ?? '').toLowerCase(),
+        phone: String(form.get('phone') ?? ''),
+        notes: String(form.get('notes') ?? ''),
+        is_active: String(form.get('is_active') ?? '1') === '1',
+      });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['saas-customers', accessToken] });
+      await queryClient.invalidateQueries({ queryKey: ['saas-dashboard', accessToken] });
+      closeDrawer();
+    },
+  });
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    createCustomer.mutate(new FormData(event.currentTarget));
+    const form = new FormData(event.currentTarget);
+    if (editingCustomer) {
+      updateCustomer.mutate(form);
+      return;
+    }
+
+    createCustomer.mutate(form);
   };
+  const openCreateDrawer = () => {
+    setEditingCustomer(null);
+    setDrawerOpen(true);
+  };
+  const openEditDrawer = (customer: SaasCustomer) => {
+    setEditingCustomer(customer);
+    setDrawerOpen(true);
+  };
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setEditingCustomer(null);
+    createCustomer.reset();
+    updateCustomer.reset();
+  };
+  const saving = createCustomer.isPending || updateCustomer.isPending;
+  const mutationError = createCustomer.error || updateCustomer.error;
 
   return (
     <>
@@ -68,7 +111,7 @@ export function SaasCustomers({ accessToken }: SaasCustomersProps) {
               <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={17} />
               <Input className="pl-11" placeholder="Buscar cliente, correo o nota" value={search} onChange={(event) => setSearch(event.target.value)} />
             </label>
-            <Button variant="primary" onClick={() => setDrawerOpen(true)}><Plus size={16} className="mr-2" /> Nuevo cliente</Button>
+            <Button variant="primary" onClick={openCreateDrawer}><Plus size={16} className="mr-2" /> Nuevo cliente</Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -102,6 +145,7 @@ export function SaasCustomers({ accessToken }: SaasCustomersProps) {
                   <p className="truncate">Telefono: {customer.phone || '-'}</p>
                   <p className="mt-2 line-clamp-2">Notas: {customer.notes || 'Sin notas.'}</p>
                 </div>
+                <Button className="mt-4 w-full" onClick={() => openEditDrawer(customer)}>Editar cliente</Button>
               </article>
             ))}
           </div>
@@ -110,22 +154,28 @@ export function SaasCustomers({ accessToken }: SaasCustomersProps) {
 
       <Drawer
         open={drawerOpen}
-        title="Nuevo cliente"
-        description="Crear cliente en PostgreSQL para la empresa autenticada."
-        onClose={() => setDrawerOpen(false)}
+        title={editingCustomer ? 'Editar cliente' : 'Nuevo cliente'}
+        description={editingCustomer ? 'Actualizar cliente dentro de la empresa autenticada.' : 'Crear cliente en PostgreSQL para la empresa autenticada.'}
+        onClose={closeDrawer}
       >
-        <form className="space-y-4" onSubmit={submit}>
+        <form key={editingCustomer?.id ?? 'create'} className="space-y-4" onSubmit={submit}>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input name="first_name" placeholder="Nombre" required />
-            <Input name="last_name" placeholder="Apellido" required />
+            <Input name="first_name" placeholder="Nombre" defaultValue={editingCustomer?.first_name ?? ''} required />
+            <Input name="last_name" placeholder="Apellido" defaultValue={editingCustomer?.last_name ?? ''} required />
           </div>
-          <Input name="email" type="email" placeholder="correo@dominio.cl" required />
-          <Input name="phone" placeholder="+56900000000" />
-          <Textarea name="notes" placeholder="Notas internas" />
-          {createCustomer.error ? <p className="rounded-2xl border border-rose-300/20 bg-rose-400/10 p-3 text-sm text-rose-100">{createCustomer.error.message}</p> : null}
+          <Input name="email" type="email" placeholder="correo@dominio.cl" defaultValue={editingCustomer?.email ?? ''} required />
+          <Input name="phone" placeholder="+56900000000" defaultValue={editingCustomer?.phone ?? ''} />
+          {editingCustomer ? (
+            <Select name="is_active" defaultValue={editingCustomer.is_active ? '1' : '0'}>
+              <option value="1">Activo</option>
+              <option value="0">Inactivo</option>
+            </Select>
+          ) : null}
+          <Textarea name="notes" placeholder="Notas internas" defaultValue={editingCustomer?.notes ?? ''} />
+          {mutationError ? <p className="rounded-2xl border border-rose-300/20 bg-rose-400/10 p-3 text-sm text-rose-100">{mutationError.message}</p> : null}
           <div className="flex gap-3">
-            <Button variant="primary" type="submit" disabled={createCustomer.isPending}>{createCustomer.isPending ? 'Creando...' : 'Crear cliente'}</Button>
-            <Button type="button" onClick={() => setDrawerOpen(false)}>Cancelar</Button>
+            <Button variant="primary" type="submit" disabled={saving}>{saving ? 'Guardando...' : editingCustomer ? 'Guardar cambios' : 'Crear cliente'}</Button>
+            <Button type="button" onClick={closeDrawer}>Cancelar</Button>
           </div>
         </form>
       </Drawer>

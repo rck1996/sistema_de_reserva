@@ -207,6 +207,21 @@ export function createSaasCustomer(accessToken: string, input: {
   }, accessToken);
 }
 
+export function updateSaasCustomer(accessToken: string, input: {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  notes?: string;
+  is_active: boolean;
+}) {
+  return apiV1<{ ok: true; data: SaasCustomer }>('/customers.php', {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  }, accessToken);
+}
+
 export function listSaasBookings(accessToken: string) {
   return apiV1<{ ok: true; data: SaasBooking[] }>('/bookings.php', {}, accessToken);
 }

@@ -29,6 +29,24 @@ El proyecto esta pensado para negocios que necesitan:
 
 No esta limitado a peluqueria. Puede adaptarse a centros de bienestar, asesoria, estetica, salud no critica, servicios profesionales y otros modelos de agenda similares.
 
+## Modelo SaaS y permisos
+
+La evolucion actual apunta a un SaaS multiempresa. Cada empresa opera su propio espacio aislado por `company_id`; el frontend nunca decide la empresa activa, porque el backend la obtiene desde el JWT.
+
+Roles propuestos:
+
+- `super_admin`: propietario de la plataforma. Puede administrar la operacion global, revisar empresas, soporte, auditoria y configuracion central.
+- `admin_empresa`: administrador de una sola empresa. Puede gestionar clientes, servicios, staff, reservas y configuracion de su empresa, pero nunca ve datos de otra empresa.
+- `staff`: profesional/equipo operativo. Puede ver y operar reservas de su empresa y crear/actualizar clientes cuando el flujo de atencion lo requiera.
+- `customer`: cliente final. Solo debe ver su perfil y sus propias reservas.
+
+Regla de negocio clave:
+
+- `admin_empresa` no depende del `super_admin` para corregir clientes, servicios o reservas de su propio negocio.
+- `super_admin` no debe operar manualmente cada empresa; su rol es administrar la plataforma.
+- ninguna query productiva debe aceptar `company_id` desde el frontend.
+- toda lectura/escritura tenant debe filtrar por `company_id` obtenido desde el JWT.
+
 ## Frontend moderno principal
 
 La carpeta `frontend/` contiene la nueva experiencia principal del producto. Las pantallas publicas, cliente, profesional y administracion se revisan desde React:
