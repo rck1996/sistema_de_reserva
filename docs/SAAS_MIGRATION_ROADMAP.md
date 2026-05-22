@@ -101,6 +101,16 @@ Roles:
 - `staff`
 - `customer`
 
+Estado actual en rama:
+
+- helpers JWT HS256 creados sin dependencia externa
+- repositorio de usuarios PostgreSQL creado
+- repositorio de refresh tokens creado
+- `AuthService` creado
+- endpoints `/api/v1/auth/login.php`, `/register.php`, `/refresh.php`, `/logout.php`, `/me.php` creados
+- bridges bajo `sistema_de_reserva_app/api/v1/auth/` para exponerlos desde el webroot legacy
+- flujo `login -> me -> refresh -> logout` validado contra PostgreSQL local
+
 ## Fase 3 - Multiempresa
 
 Objetivo: aislar datos por empresa.

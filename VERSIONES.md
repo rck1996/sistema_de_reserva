@@ -35,6 +35,7 @@ Incluye:
 - login React con opcion `Recordarme por 30 dias` y timeout extendido sin cerrar sesion al volver al inicio
 - licencia propietaria rck1996.com aplicada con `LICENSE.md`, `NOTICE.md` y aviso en README
 - filtros del calendario conectados a datos reales por profesional, estado y servicio
+- rama `develop/saas-postgres-jwt-mp`: Fase 2 JWT iniciada con endpoints API v1 auth y refresh tokens PostgreSQL
 
 ## En desarrollo - 2026-05-14
 
