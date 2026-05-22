@@ -271,7 +271,7 @@ Si todo esta aplicado:
 6. Probar healthcheck:
 
 ```text
-http://127.0.0.1:8000/backend/api/v1/health.php
+http://127.0.0.1:8000/api/v1/health.php
 ```
 
 Validacion local realizada en esta rama:
