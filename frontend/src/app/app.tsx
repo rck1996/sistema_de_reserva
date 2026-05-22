@@ -9,7 +9,7 @@ import { BookingDrawer } from '../features/booking/booking-drawer';
 import { useSaasAuthStore } from '../features/auth/saas-auth-store';
 import { Metrics } from '../features/dashboard/metrics';
 import { AppShell } from '../layouts/app-shell';
-import { getSaasMe, listSaasCustomers, listSaasDisciplines, listSaasProfessionals, listSaasServices, loginSaas, logoutSaas, refreshSaas } from '../services/api-v1-client';
+import { createSaasDemoBooking, getSaasMe, listSaasBookings, listSaasCustomers, listSaasDisciplines, listSaasProfessionals, listSaasServices, loginSaas, logoutSaas, refreshSaas } from '../services/api-v1-client';
 import { createCustomerBooking, getAdminDashboard, getAdminManagement, getAuthState, getCustomerDashboard, getPublicData, getStaffDashboard, postAuth, saveAdminManagement } from '../services/portal-api';
 import { useBookingStore } from '../store/booking-store';
 import type { Booking, Professional, Service } from '../types/booking';
@@ -208,7 +208,21 @@ function SaasLoginPage({ onNavigate }: { onNavigate: (route: string) => void }) 
       setMessage(`Clientes tenant cargados: ${payload.data.length}`);
     },
   });
-  const currentError = login.error || me.error || refresh.error || logout.error || services.error || disciplines.error || professionals.error || customers.error;
+  const bookings = useMutation({
+    mutationFn: () => listSaasBookings(accessToken),
+    onSuccess: (payload) => {
+      setResourcePreview(JSON.stringify(payload.data.slice(0, 5), null, 2));
+      setMessage(`Reservas tenant cargadas: ${payload.data.length}`);
+    },
+  });
+  const createBooking = useMutation({
+    mutationFn: () => createSaasDemoBooking(accessToken),
+    onSuccess: (payload) => {
+      setResourcePreview(JSON.stringify(payload.data, null, 2));
+      setMessage(`Reserva creada: ${payload.data.service_name} / ${payload.data.professional_name}`);
+    },
+  });
+  const currentError = login.error || me.error || refresh.error || logout.error || services.error || disciplines.error || professionals.error || customers.error || bookings.error || createBooking.error;
 
   return (
     <PublicFrame onNavigate={onNavigate}>
@@ -241,6 +255,8 @@ function SaasLoginPage({ onNavigate }: { onNavigate: (route: string) => void }) 
             <Button onClick={() => services.mutate()} disabled={!accessToken || services.isPending}>Listar servicios tenant</Button>
             <Button onClick={() => professionals.mutate()} disabled={!accessToken || professionals.isPending}>Listar profesionales tenant</Button>
             <Button onClick={() => customers.mutate()} disabled={!accessToken || customers.isPending}>Listar clientes tenant</Button>
+            <Button onClick={() => bookings.mutate()} disabled={!accessToken || bookings.isPending}>Listar reservas tenant</Button>
+            <Button variant="primary" onClick={() => createBooking.mutate()} disabled={!accessToken || createBooking.isPending}>Crear reserva demo</Button>
           </div>
           {message ? <p className="mt-5 rounded-2xl border border-emerald-300/20 bg-emerald-400/10 p-3 text-sm text-emerald-100">{message}</p> : null}
           {currentError ? <p className="mt-5 rounded-2xl border border-rose-300/20 bg-rose-400/10 p-3 text-sm text-rose-100">{currentError.message}</p> : null}

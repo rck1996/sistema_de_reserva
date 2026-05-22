@@ -128,6 +128,26 @@ export type SaasCustomer = {
   is_active: boolean;
 };
 
+export type SaasBooking = {
+  id: string;
+  company_id: string;
+  customer_id: string;
+  professional_id: string;
+  service_id: string;
+  starts_at: string;
+  ends_at: string;
+  status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'no_show' | 'cancelled';
+  notes: string;
+  customer_first_name: string;
+  customer_last_name: string;
+  customer_email: string;
+  professional_name: string;
+  professional_color: string;
+  service_name: string;
+  service_price: string;
+  service_duration_minutes: number;
+};
+
 export function listSaasServices(accessToken: string) {
   return apiV1<{ ok: true; data: SaasService[] }>('/services.php', {}, accessToken);
 }
@@ -142,4 +162,37 @@ export function listSaasProfessionals(accessToken: string) {
 
 export function listSaasCustomers(accessToken: string) {
   return apiV1<{ ok: true; data: SaasCustomer[] }>('/customers.php', {}, accessToken);
+}
+
+export function listSaasBookings(accessToken: string) {
+  return apiV1<{ ok: true; data: SaasBooking[] }>('/bookings.php', {}, accessToken);
+}
+
+export async function createSaasDemoBooking(accessToken: string) {
+  const [customers, professionals] = await Promise.all([
+    listSaasCustomers(accessToken),
+    listSaasProfessionals(accessToken),
+  ]);
+  const professional = professionals.data.find((item) => item.services.length > 0);
+  const customer = customers.data[0];
+
+  if (!customer || !professional || professional.services.length === 0) {
+    throw new Error('Faltan clientes, profesionales o servicios demo para crear reserva.');
+  }
+
+  const startsAt = new Date();
+  startsAt.setDate(startsAt.getDate() + 7);
+  startsAt.setHours(15, 30, 0, 0);
+
+  return apiV1<{ ok: true; data: SaasBooking }>('/bookings.php', {
+    method: 'POST',
+    body: JSON.stringify({
+      customer_id: customer.id,
+      professional_id: professional.id,
+      service_id: professional.services[0].id,
+      starts_at: startsAt.toISOString(),
+      status: 'confirmed',
+      notes: 'Reserva creada desde prueba React API v1.',
+    }),
+  }, accessToken);
 }

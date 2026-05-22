@@ -42,6 +42,7 @@ Incluye:
 - API v1 tenant ampliada con disciplinas y profesionales protegidos por JWT
 - notificaciones de correo y WhatsApp desactivadas por defecto mientras se define proveedor transaccional
 - Mercado Pago pausado hasta nuevo aviso para priorizar reservas multiempresa
+- API v1 de reservas sobre PostgreSQL con validacion tenant, servicio/profesional y anti-solapamiento basico
 
 ## En desarrollo - 2026-05-14
 
