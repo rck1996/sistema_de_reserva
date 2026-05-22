@@ -305,7 +305,7 @@ function initialize_database(PDO $pdo): void
         'booking_notice' => 'Selecciona disciplina, servicio, profesional y horario disponible.',
         'global_buffer_min' => '0',
         'reminder_hours_before' => '24',
-        'notifications_email_enabled' => '1',
+        'notifications_email_enabled' => '0',
         'notifications_whatsapp_enabled' => '0',
         'notifications_send_email' => '0',
         'smtp_from_name' => 'Sistema de Reserva',

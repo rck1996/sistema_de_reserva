@@ -104,6 +104,10 @@ function registered_sqlite_migrations(): array
             $pdo->exec('CREATE INDEX IF NOT EXISTS idx_audit_entity_time ON audit_log (entity_type, entity_id, created_at)');
             $pdo->exec('CREATE INDEX IF NOT EXISTS idx_holidays_date ON global_holidays (holiday_date)');
         },
+        '2026_05_22_001_disable_legacy_notifications' => static function (PDO $pdo): void {
+            $pdo->prepare('UPDATE configuracion SET valor = "0" WHERE clave IN ("notifications_email_enabled", "notifications_whatsapp_enabled", "notifications_send_email")')
+                ->execute();
+        },
     );
 }
 

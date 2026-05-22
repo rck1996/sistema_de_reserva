@@ -42,6 +42,9 @@ $theme = current_theme();
             <h2 class="mt-6 text-3xl font-semibold">Ingresar al panel</h2>
             <form action="auth.php" method="post" class="mt-8 space-y-5">
                 <?php echo csrf_input(); ?>
+                <?php if (($_GET['legacy'] ?? '') === '1'): ?>
+                    <input type="hidden" name="legacy" value="1">
+                <?php endif; ?>
                 <label class="block text-sm font-medium text-slate-600">Correo administrador
                     <input class="field-input" name="email" type="email" required>
                 </label>

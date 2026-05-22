@@ -151,6 +151,8 @@ Tenant resolver:
 
 ## Fase 4 - Mercado Pago Checkout Pro
 
+Estado: pausada hasta nuevo aviso. La prioridad actual es completar reservas multiempresa sobre API v1 antes de conectar pagos.
+
 Objetivo: pagos online por reserva.
 
 Endpoints:

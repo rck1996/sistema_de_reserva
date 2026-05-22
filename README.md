@@ -289,6 +289,8 @@ Desde administracion se puede configurar:
 - remitente de correo y timezone operativa
 - host, puerto, usuario, clave y cifrado SMTP
 
+Por decision de producto actual, email y WhatsApp quedan desactivados por defecto mientras la nueva API v1 multiempresa termina reservas y se define un proveedor transaccional.
+
 Si no se sube favicon, la app usa uno por defecto para evitar errores 404 en navegacion.
 
 ### WhatsApp opcional
@@ -482,11 +484,12 @@ Nota:
 
 ### Correo real
 
-- por defecto las notificaciones quedan en modo simulado
+- por defecto las notificaciones de correo quedan inactivas
 - para envio real:
   - activa `notifications_send_email` en administracion o `NOTIFICATIONS_SEND_EMAIL=1` en `.env`
   - configura host, puerto, usuario, clave y cifrado SMTP
   - el sistema usa envio SMTP directo, sin Composer ni dependencias externas
+- en la arquitectura SaaS nueva se recomienda reemplazar SMTP legacy por un proveedor API como Resend o Brevo
 
 ### Arranque local
 

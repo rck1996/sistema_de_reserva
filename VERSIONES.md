@@ -39,6 +39,9 @@ Incluye:
 - frontend incremental `/saas-login` conectado a API v1 JWT para probar login, me, refresh y logout
 - API v1 tenant inicial con endpoints protegidos para servicios y clientes sobre PostgreSQL
 - seed demo PostgreSQL con disciplinas, servicios y clientes para validar multiempresa desde JWT
+- API v1 tenant ampliada con disciplinas y profesionales protegidos por JWT
+- notificaciones de correo y WhatsApp desactivadas por defecto mientras se define proveedor transaccional
+- Mercado Pago pausado hasta nuevo aviso para priorizar reservas multiempresa
 
 ## En desarrollo - 2026-05-14
 

@@ -7,6 +7,15 @@ require_once __DIR__ . '/includes/bootstrap.php';
 $pdo = app_pdo();
 $action = request_post_string('action');
 
+function legacy_redirect_path(string $path): string
+{
+    if (request_post_string('legacy', false) !== '1') {
+        return $path;
+    }
+
+    return str_contains($path, '?') ? $path . '&legacy=1' : $path . '?legacy=1';
+}
+
 function login_user(
     PDO $pdo,
     string $table,
@@ -30,7 +39,7 @@ function login_user(
     $user = fetch_one($pdo->prepare($sql), $params);
 
     if ($user === null || !password_matches($password, (string) $user[$passwordColumn])) {
-        app_redirect($redirectFailure, 'Credenciales invalidas');
+        app_redirect(legacy_redirect_path($redirectFailure), 'Credenciales invalidas');
     }
 
     if (password_needs_upgrade((string) $user[$passwordColumn])) {
@@ -45,7 +54,7 @@ function login_user(
         $_SESSION[$sessionKey] = $user[$column];
     }
 
-    app_redirect($redirectSuccess, $sessionMap['message']);
+    app_redirect(legacy_redirect_path($redirectSuccess), $sessionMap['message']);
 }
 
 function lookup_account_for_reset(PDO $pdo, string $identity): ?array

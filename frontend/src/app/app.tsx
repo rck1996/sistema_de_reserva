@@ -9,7 +9,7 @@ import { BookingDrawer } from '../features/booking/booking-drawer';
 import { useSaasAuthStore } from '../features/auth/saas-auth-store';
 import { Metrics } from '../features/dashboard/metrics';
 import { AppShell } from '../layouts/app-shell';
-import { getSaasMe, listSaasCustomers, listSaasServices, loginSaas, logoutSaas, refreshSaas } from '../services/api-v1-client';
+import { getSaasMe, listSaasCustomers, listSaasDisciplines, listSaasProfessionals, listSaasServices, loginSaas, logoutSaas, refreshSaas } from '../services/api-v1-client';
 import { createCustomerBooking, getAdminDashboard, getAdminManagement, getAuthState, getCustomerDashboard, getPublicData, getStaffDashboard, postAuth, saveAdminManagement } from '../services/portal-api';
 import { useBookingStore } from '../store/booking-store';
 import type { Booking, Professional, Service } from '../types/booking';
@@ -187,6 +187,20 @@ function SaasLoginPage({ onNavigate }: { onNavigate: (route: string) => void }) 
       setMessage(`Servicios tenant cargados: ${payload.data.length}`);
     },
   });
+  const disciplines = useMutation({
+    mutationFn: () => listSaasDisciplines(accessToken),
+    onSuccess: (payload) => {
+      setResourcePreview(JSON.stringify(payload.data.slice(0, 5), null, 2));
+      setMessage(`Disciplinas tenant cargadas: ${payload.data.length}`);
+    },
+  });
+  const professionals = useMutation({
+    mutationFn: () => listSaasProfessionals(accessToken),
+    onSuccess: (payload) => {
+      setResourcePreview(JSON.stringify(payload.data.slice(0, 5), null, 2));
+      setMessage(`Profesionales tenant cargados: ${payload.data.length}`);
+    },
+  });
   const customers = useMutation({
     mutationFn: () => listSaasCustomers(accessToken),
     onSuccess: (payload) => {
@@ -194,7 +208,7 @@ function SaasLoginPage({ onNavigate }: { onNavigate: (route: string) => void }) 
       setMessage(`Clientes tenant cargados: ${payload.data.length}`);
     },
   });
-  const currentError = login.error || me.error || refresh.error || logout.error || services.error || customers.error;
+  const currentError = login.error || me.error || refresh.error || logout.error || services.error || disciplines.error || professionals.error || customers.error;
 
   return (
     <PublicFrame onNavigate={onNavigate}>
@@ -223,7 +237,9 @@ function SaasLoginPage({ onNavigate }: { onNavigate: (route: string) => void }) 
             <Button variant="danger" onClick={() => logout.mutate()} disabled={!refreshToken || logout.isPending}>Logout</Button>
           </div>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <Button onClick={() => disciplines.mutate()} disabled={!accessToken || disciplines.isPending}>Listar disciplinas tenant</Button>
             <Button onClick={() => services.mutate()} disabled={!accessToken || services.isPending}>Listar servicios tenant</Button>
+            <Button onClick={() => professionals.mutate()} disabled={!accessToken || professionals.isPending}>Listar profesionales tenant</Button>
             <Button onClick={() => customers.mutate()} disabled={!accessToken || customers.isPending}>Listar clientes tenant</Button>
           </div>
           {message ? <p className="mt-5 rounded-2xl border border-emerald-300/20 bg-emerald-400/10 p-3 text-sm text-emerald-100">{message}</p> : null}

@@ -83,6 +83,7 @@ export function getSaasMe(accessToken: string) {
 export type SaasService = {
   id: string;
   company_id: string;
+  discipline_id?: string | null;
   name: string;
   description: string;
   price: string;
@@ -91,6 +92,29 @@ export type SaasService = {
   color: string;
   is_active: boolean;
   discipline_name?: string | null;
+};
+
+export type SaasDiscipline = {
+  id: string;
+  company_id: string;
+  name: string;
+  description: string;
+  color: string;
+  is_active: boolean;
+};
+
+export type SaasProfessional = {
+  id: string;
+  company_id: string;
+  name: string;
+  email: string;
+  phone: string;
+  bio: string;
+  calendar_color: string;
+  booking_capacity: number;
+  accepts_waitlist: boolean;
+  is_active: boolean;
+  services: Array<{ id: string; name: string; discipline_id?: string | null }>;
 };
 
 export type SaasCustomer = {
@@ -106,6 +130,14 @@ export type SaasCustomer = {
 
 export function listSaasServices(accessToken: string) {
   return apiV1<{ ok: true; data: SaasService[] }>('/services.php', {}, accessToken);
+}
+
+export function listSaasDisciplines(accessToken: string) {
+  return apiV1<{ ok: true; data: SaasDiscipline[] }>('/disciplines.php', {}, accessToken);
+}
+
+export function listSaasProfessionals(accessToken: string) {
+  return apiV1<{ ok: true; data: SaasProfessional[] }>('/professionals.php', {}, accessToken);
 }
 
 export function listSaasCustomers(accessToken: string) {
