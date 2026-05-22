@@ -45,6 +45,7 @@ Incluye:
 - API v1 de reservas sobre PostgreSQL con validacion tenant, servicio/profesional y anti-solapamiento basico
 - dashboard API v1 con metricas reales PostgreSQL y primera pantalla React protegida `/saas-dashboard`
 - calendario SaaS v1 protegido por JWT con FullCalendar, filtros, drawer y acciones de estado sobre PostgreSQL
+- pantalla `/saas-customers` con búsqueda, listado responsive y creación de clientes sobre API v1 PostgreSQL
 
 ## En desarrollo - 2026-05-14
 

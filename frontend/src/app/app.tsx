@@ -17,6 +17,7 @@ import type { Booking, Professional, Service } from '../types/booking';
 const queryClient = new QueryClient();
 const BookingCalendar = lazy(() => import('../features/calendar/booking-calendar').then((module) => ({ default: module.BookingCalendar })));
 const SaasCalendar = lazy(() => import('../features/calendar/saas-calendar').then((module) => ({ default: module.SaasCalendar })));
+const SaasCustomers = lazy(() => import('../features/customers/saas-customers').then((module) => ({ default: module.SaasCustomers })));
 
 export function App() {
   return (
@@ -62,6 +63,7 @@ function Portal() {
   if (route === 'saas-login') return <SaasLoginPage onNavigate={navigate} />;
   if (route === 'saas-dashboard') return <SaasDashboardPage onNavigate={navigate} />;
   if (route === 'saas-calendar') return <SaasCalendarPage onNavigate={navigate} />;
+  if (route === 'saas-customers') return <SaasCustomersPage onNavigate={navigate} />;
   if (route === 'login') return <LoginPage csrfToken={csrfToken} onNavigate={navigate} />;
   return <HomePage csrfToken={csrfToken} onNavigate={navigate} session={auth.data?.session} />;
 }
@@ -256,6 +258,7 @@ function SaasLoginPage({ onNavigate }: { onNavigate: (route: string) => void }) 
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <Button variant="primary" onClick={() => onNavigate('saas-dashboard')} disabled={!accessToken}>Abrir dashboard SaaS v1</Button>
             <Button variant="primary" onClick={() => onNavigate('saas-calendar')} disabled={!accessToken}>Abrir calendario SaaS v1</Button>
+            <Button variant="primary" onClick={() => onNavigate('saas-customers')} disabled={!accessToken}>Abrir clientes SaaS v1</Button>
           </div>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <Button onClick={() => disciplines.mutate()} disabled={!accessToken || disciplines.isPending}>Listar disciplinas tenant</Button>
@@ -281,6 +284,40 @@ function SaasLoginPage({ onNavigate }: { onNavigate: (route: string) => void }) 
   );
 }
 
+function SaasCustomersPage({ onNavigate }: { onNavigate: (route: string) => void }) {
+  const { accessToken, user, hydrate, clearSession } = useSaasAuthStore();
+  useEffect(() => hydrate(), [hydrate]);
+
+  if (!accessToken) {
+    return (
+      <PublicFrame onNavigate={onNavigate}>
+        <Card className="mx-auto max-w-2xl p-8">
+          <Badge tone="rose">Sesion requerida</Badge>
+          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em] text-white">Entra con JWT para gestionar clientes SaaS.</h1>
+          <Button className="mt-6" variant="primary" onClick={() => onNavigate('saas-login')}>Ir a login API v1</Button>
+        </Card>
+      </PublicFrame>
+    );
+  }
+
+  return (
+    <PublicFrame onNavigate={onNavigate}>
+      <div className="mx-auto max-w-7xl space-y-6">
+        <SaasTopBar
+          eyebrow="Clientes"
+          title="CRM operativo SaaS."
+          description={`Sesion: ${user?.email ?? '-'} · Empresa: ${user?.company_name ?? '-'}.`}
+          onNavigate={onNavigate}
+          onLogout={() => { clearSession(); onNavigate('saas-login'); }}
+        />
+        <Suspense fallback={<CalendarSkeleton />}>
+          <SaasCustomers accessToken={accessToken} />
+        </Suspense>
+      </div>
+    </PublicFrame>
+  );
+}
+
 function SaasCalendarPage({ onNavigate }: { onNavigate: (route: string) => void }) {
   const { accessToken, user, hydrate, clearSession } = useSaasAuthStore();
   useEffect(() => hydrate(), [hydrate]);
@@ -300,25 +337,51 @@ function SaasCalendarPage({ onNavigate }: { onNavigate: (route: string) => void 
   return (
     <PublicFrame onNavigate={onNavigate}>
       <div className="mx-auto max-w-7xl space-y-6">
-        <Card className="p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <Badge tone="violet">Calendario operativo</Badge>
-              <h1 className="mt-3 text-5xl font-semibold tracking-[-0.06em] text-white">Agenda SaaS multiempresa.</h1>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">Sesion: {user?.email} · Empresa: {user?.company_name}. Esta vista usa JWT, PostgreSQL y API v1.</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button onClick={() => onNavigate('saas-dashboard')}>Dashboard</Button>
-              <Button onClick={() => onNavigate('saas-login')}>Pruebas API</Button>
-              <Button variant="danger" onClick={() => { clearSession(); onNavigate('saas-login'); }}>Cerrar JWT</Button>
-            </div>
-          </div>
-        </Card>
+        <SaasTopBar
+          eyebrow="Calendario operativo"
+          title="Agenda SaaS multiempresa."
+          description={`Sesion: ${user?.email ?? '-'} · Empresa: ${user?.company_name ?? '-'}. Esta vista usa JWT, PostgreSQL y API v1.`}
+          onNavigate={onNavigate}
+          onLogout={() => { clearSession(); onNavigate('saas-login'); }}
+        />
         <Suspense fallback={<CalendarSkeleton />}>
           <SaasCalendar accessToken={accessToken} />
         </Suspense>
       </div>
     </PublicFrame>
+  );
+}
+
+function SaasTopBar({
+  eyebrow,
+  title,
+  description,
+  onNavigate,
+  onLogout,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  onNavigate: (route: string) => void;
+  onLogout: () => void;
+}) {
+  return (
+    <Card className="p-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <Badge tone="violet">{eyebrow}</Badge>
+          <h1 className="mt-3 text-5xl font-semibold tracking-[-0.06em] text-white">{title}</h1>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">{description}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => onNavigate('saas-dashboard')}>Dashboard</Button>
+          <Button onClick={() => onNavigate('saas-calendar')}>Calendario</Button>
+          <Button onClick={() => onNavigate('saas-customers')}>Clientes</Button>
+          <Button onClick={() => onNavigate('saas-login')}>Pruebas API</Button>
+          <Button variant="danger" onClick={onLogout}>Cerrar JWT</Button>
+        </div>
+      </div>
+    </Card>
   );
 }
 
@@ -393,7 +456,10 @@ function SaasDashboardPage({ onNavigate }: { onNavigate: (route: string) => void
                       <p className="text-sm font-semibold text-white">Proximas reservas</p>
                       <p className="mt-1 text-sm text-slate-500">Agenda activa de la empresa autenticada.</p>
                     </div>
-                    <Button onClick={() => onNavigate('saas-calendar')}><ArrowUpRight size={16} className="mr-2" /> Calendario</Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button onClick={() => onNavigate('saas-calendar')}><ArrowUpRight size={16} className="mr-2" /> Calendario</Button>
+                      <Button onClick={() => onNavigate('saas-customers')}>Clientes</Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">

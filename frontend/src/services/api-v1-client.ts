@@ -191,6 +191,22 @@ export function listSaasCustomers(accessToken: string) {
   return apiV1<{ ok: true; data: SaasCustomer[] }>('/customers.php', {}, accessToken);
 }
 
+export function createSaasCustomer(accessToken: string, input: {
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  notes?: string;
+}) {
+  return apiV1<{ ok: true; data: SaasCustomer }>('/customers.php', {
+    method: 'POST',
+    body: JSON.stringify({
+      ...input,
+      is_active: true,
+    }),
+  }, accessToken);
+}
+
 export function listSaasBookings(accessToken: string) {
   return apiV1<{ ok: true; data: SaasBooking[] }>('/bookings.php', {}, accessToken);
 }
