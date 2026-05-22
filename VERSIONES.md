@@ -37,6 +37,8 @@ Incluye:
 - filtros del calendario conectados a datos reales por profesional, estado y servicio
 - rama `develop/saas-postgres-jwt-mp`: Fase 2 JWT iniciada con endpoints API v1 auth y refresh tokens PostgreSQL
 - frontend incremental `/saas-login` conectado a API v1 JWT para probar login, me, refresh y logout
+- API v1 tenant inicial con endpoints protegidos para servicios y clientes sobre PostgreSQL
+- seed demo PostgreSQL con disciplinas, servicios y clientes para validar multiempresa desde JWT
 
 ## En desarrollo - 2026-05-14
 

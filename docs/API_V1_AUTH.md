@@ -158,5 +158,12 @@ La pantalla permite probar:
 - refresh token
 - logout
 - persistencia temporal en `localStorage`
+- listado protegido de servicios y clientes tenant
 
 Esta pantalla es incremental y no reemplaza aun el login legacy.
+
+Recursos tenant protegidos:
+
+```text
+docs/API_V1_TENANT_RESOURCES.md
+```

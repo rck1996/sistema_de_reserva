@@ -26,3 +26,13 @@ function authorize_roles(array $claims, array $roles): void
         json_response(array('ok' => false, 'error' => 'No autorizado'), 403);
     }
 }
+
+function tenant_company_id(array $claims): string
+{
+    $companyId = (string) ($claims['company_id'] ?? '');
+    if ($companyId === '') {
+        json_response(array('ok' => false, 'error' => 'Tenant requerido'), 403);
+    }
+
+    return $companyId;
+}

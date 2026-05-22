@@ -9,7 +9,7 @@ import { BookingDrawer } from '../features/booking/booking-drawer';
 import { useSaasAuthStore } from '../features/auth/saas-auth-store';
 import { Metrics } from '../features/dashboard/metrics';
 import { AppShell } from '../layouts/app-shell';
-import { getSaasMe, loginSaas, logoutSaas, refreshSaas } from '../services/api-v1-client';
+import { getSaasMe, listSaasCustomers, listSaasServices, loginSaas, logoutSaas, refreshSaas } from '../services/api-v1-client';
 import { createCustomerBooking, getAdminDashboard, getAdminManagement, getAuthState, getCustomerDashboard, getPublicData, getStaffDashboard, postAuth, saveAdminManagement } from '../services/portal-api';
 import { useBookingStore } from '../store/booking-store';
 import type { Booking, Professional, Service } from '../types/booking';
@@ -149,6 +149,7 @@ function HomePage({ csrfToken, onNavigate, session }: { csrfToken: string; onNav
 function SaasLoginPage({ onNavigate }: { onNavigate: (route: string) => void }) {
   const { accessToken, refreshToken, user, hydrate, setSession, clearSession } = useSaasAuthStore();
   const [message, setMessage] = useState('');
+  const [resourcePreview, setResourcePreview] = useState('');
   useEffect(() => hydrate(), [hydrate]);
   const login = useMutation({
     mutationFn: (form: FormData) => loginSaas({
@@ -179,7 +180,21 @@ function SaasLoginPage({ onNavigate }: { onNavigate: (route: string) => void }) 
       setMessage('Sesion SaaS cerrada.');
     },
   });
-  const currentError = login.error || me.error || refresh.error || logout.error;
+  const services = useMutation({
+    mutationFn: () => listSaasServices(accessToken),
+    onSuccess: (payload) => {
+      setResourcePreview(JSON.stringify(payload.data.slice(0, 5), null, 2));
+      setMessage(`Servicios tenant cargados: ${payload.data.length}`);
+    },
+  });
+  const customers = useMutation({
+    mutationFn: () => listSaasCustomers(accessToken),
+    onSuccess: (payload) => {
+      setResourcePreview(JSON.stringify(payload.data.slice(0, 5), null, 2));
+      setMessage(`Clientes tenant cargados: ${payload.data.length}`);
+    },
+  });
+  const currentError = login.error || me.error || refresh.error || logout.error || services.error || customers.error;
 
   return (
     <PublicFrame onNavigate={onNavigate}>
@@ -207,6 +222,10 @@ function SaasLoginPage({ onNavigate }: { onNavigate: (route: string) => void }) 
             <Button onClick={() => refresh.mutate()} disabled={!refreshToken || refresh.isPending}>Refresh</Button>
             <Button variant="danger" onClick={() => logout.mutate()} disabled={!refreshToken || logout.isPending}>Logout</Button>
           </div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <Button onClick={() => services.mutate()} disabled={!accessToken || services.isPending}>Listar servicios tenant</Button>
+            <Button onClick={() => customers.mutate()} disabled={!accessToken || customers.isPending}>Listar clientes tenant</Button>
+          </div>
           {message ? <p className="mt-5 rounded-2xl border border-emerald-300/20 bg-emerald-400/10 p-3 text-sm text-emerald-100">{message}</p> : null}
           {currentError ? <p className="mt-5 rounded-2xl border border-rose-300/20 bg-rose-400/10 p-3 text-sm text-rose-100">{currentError.message}</p> : null}
           <div className="mt-5 rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-xs leading-6 text-slate-400">
@@ -216,6 +235,7 @@ function SaasLoginPage({ onNavigate }: { onNavigate: (route: string) => void }) 
             <p>Rol: {user?.role ?? '-'}</p>
             <p>Access token: {accessToken ? `${accessToken.slice(0, 24)}...` : '-'}</p>
           </div>
+          {resourcePreview ? <pre className="mt-5 max-h-72 overflow-auto rounded-[1.5rem] border border-white/10 bg-black/30 p-4 text-xs text-slate-300">{resourcePreview}</pre> : null}
         </Card>
       </div>
     </PublicFrame>

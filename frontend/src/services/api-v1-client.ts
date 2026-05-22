@@ -79,3 +79,35 @@ export function logoutSaas(refreshToken: string) {
 export function getSaasMe(accessToken: string) {
   return apiV1<SaasMeResponse>('/auth/me.php', {}, accessToken);
 }
+
+export type SaasService = {
+  id: string;
+  company_id: string;
+  name: string;
+  description: string;
+  price: string;
+  duration_minutes: number;
+  modality: string;
+  color: string;
+  is_active: boolean;
+  discipline_name?: string | null;
+};
+
+export type SaasCustomer = {
+  id: string;
+  company_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  notes: string;
+  is_active: boolean;
+};
+
+export function listSaasServices(accessToken: string) {
+  return apiV1<{ ok: true; data: SaasService[] }>('/services.php', {}, accessToken);
+}
+
+export function listSaasCustomers(accessToken: string) {
+  return apiV1<{ ok: true; data: SaasCustomer[] }>('/customers.php', {}, accessToken);
+}
