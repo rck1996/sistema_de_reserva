@@ -293,7 +293,7 @@ function SaasCustomerRegisterPage({ onNavigate }: { onNavigate: (route: string) 
   const { setSession } = useSaasAuthStore();
   const register = useMutation({
     mutationFn: (form: FormData) => registerSaasCustomer({
-      companySlug: String(form.get('company_slug') ?? 'demo'),
+      companySlug: String(form.get('company_slug') ?? 'demo').trim().toLowerCase() || 'demo',
       firstName: String(form.get('first_name') ?? ''),
       lastName: String(form.get('last_name') ?? ''),
       email: String(form.get('email') ?? '').toLowerCase(),
@@ -312,7 +312,7 @@ function SaasCustomerRegisterPage({ onNavigate }: { onNavigate: (route: string) 
         <Card className="p-8">
           <Badge tone="emerald">Cuenta por empresa</Badge>
           <h1 className="mt-5 text-5xl font-semibold tracking-[-0.06em] text-white">Registro cliente SaaS v1.</h1>
-          <p className="mt-4 text-sm leading-6 text-slate-400">El cliente se inscribe dentro de una empresa especifica. El mismo correo puede registrarse en otra empresa porque el email es unico por `company_id`.</p>
+            <p className="mt-4 text-sm leading-6 text-slate-400">El cliente se inscribe dentro de una empresa especifica. En esta base local solo existe el tenant demo; mas adelante el slug vendra desde la URL publica de cada empresa.</p>
           <div className="mt-6 rounded-[1.5rem] border border-white/10 bg-white/[0.05] p-4 text-sm text-slate-300">
             <p className="font-semibold text-white">Modelo actual</p>
             <p className="mt-2">Empresa: demo</p>
@@ -320,8 +320,13 @@ function SaasCustomerRegisterPage({ onNavigate }: { onNavigate: (route: string) 
           </div>
         </Card>
         <Card className="p-6">
-          <form className="space-y-4" onSubmit={(event) => submitForm(event, register.mutate, '')}>
-            <Input name="company_slug" defaultValue="demo" placeholder="empresa-slug" required />
+            <form className="space-y-4" onSubmit={(event) => submitForm(event, register.mutate, '')}>
+            <label className="block text-sm font-medium text-slate-300">
+              Empresa
+              <Select className="mt-2" name="company_slug" defaultValue="demo" required>
+                <option value="demo">demo - Demo Company</option>
+              </Select>
+            </label>
             <div className="grid gap-4 sm:grid-cols-2">
               <Input name="first_name" placeholder="Nombre" required />
               <Input name="last_name" placeholder="Apellido" required />
