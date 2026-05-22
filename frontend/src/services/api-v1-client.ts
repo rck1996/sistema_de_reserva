@@ -63,7 +63,6 @@ export function loginSaas(input: { companySlug: string; email: string; password:
 }
 
 export function registerSaasCustomer(input: {
-  companySlug: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -71,10 +70,9 @@ export function registerSaasCustomer(input: {
   phone?: string;
   notes?: string;
 }) {
-  return apiV1<SaasAuthResponse>('/auth/register-customer.php', {
+  return apiV1<SaasAuthResponse>('/auth/customer-register.php', {
     method: 'POST',
     body: JSON.stringify({
-      company_slug: input.companySlug,
       first_name: input.firstName,
       last_name: input.lastName,
       email: input.email,
@@ -82,6 +80,13 @@ export function registerSaasCustomer(input: {
       phone: input.phone ?? '',
       notes: input.notes ?? '',
     }),
+  });
+}
+
+export function loginSaasCustomer(input: { email: string; password: string }) {
+  return apiV1<SaasAuthResponse>('/auth/customer-login.php', {
+    method: 'POST',
+    body: JSON.stringify(input),
   });
 }
 
@@ -153,15 +158,41 @@ export type SaasCustomer = {
 
 export type SaasCustomerProfile = SaasCustomer & {
   user_id: string;
-  company_slug: string;
-  company_name: string;
+  avatar_url: string;
   created_at: string;
+};
+
+export type MarketplaceCompany = {
+  id: string;
+  slug: string;
+  name: string;
+  display_name: string;
+  tagline: string;
+  description: string;
+  logo_url: string;
+  cover_url?: string;
+  primary_color: string;
+  accent_color: string;
+  city: string;
+  contact_email: string;
+  contact_phone: string;
+};
+
+export type MarketplaceCompanyDetail = MarketplaceCompany & {
+  address: string;
+  website_url: string;
+  disciplines: SaasDiscipline[];
+  services: SaasService[];
+  professionals: Array<SaasProfessional & { services: Array<{ service_id: string; service_name: string; base_price: string; custom_price?: string | null; effective_price: string }> }>;
 };
 
 export type SaasBooking = {
   id: string;
   company_id: string;
+  company_name?: string;
+  company_slug?: string;
   customer_id: string;
+  customer_profile_id?: string;
   professional_id: string;
   service_id: string;
   starts_at: string;
@@ -280,6 +311,21 @@ export function getSaasCustomerMe(accessToken: string) {
 
 export function listSaasCustomerBookings(accessToken: string) {
   return apiV1<{ ok: true; data: SaasBooking[] }>('/customer/bookings.php', {}, accessToken);
+}
+
+export function listMarketplaceCompanies() {
+  return apiV1<{ ok: true; data: MarketplaceCompany[] }>('/marketplace/companies.php');
+}
+
+export function getMarketplaceCompany(slug: string) {
+  return apiV1<{ ok: true; data: MarketplaceCompanyDetail }>(`/marketplace/companies.php?slug=${encodeURIComponent(slug)}`);
+}
+
+export function enrollMarketplaceCompany(accessToken: string, companySlug: string) {
+  return apiV1<{ ok: true; data: { company: MarketplaceCompanyDetail } }>('/marketplace/enroll.php', {
+    method: 'POST',
+    body: JSON.stringify({ company_slug: companySlug }),
+  }, accessToken);
 }
 
 export async function createSaasDemoBooking(accessToken: string) {

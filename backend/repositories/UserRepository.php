@@ -23,6 +23,22 @@ final class UserRepository
         return $row === false ? null : $row;
     }
 
+    public function findGlobalCustomerByEmail(string $email): ?array
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT users.*, NULL AS company_slug, NULL AS company_name
+             FROM users
+             WHERE users.email = :email
+                AND users.role = \'customer\'
+                AND users.is_active = TRUE
+             LIMIT 1'
+        );
+        $statement->execute(array(':email' => $email));
+        $row = $statement->fetch();
+
+        return $row === false ? null : $row;
+    }
+
     public function findById(string $userId): ?array
     {
         $statement = $this->pdo->prepare(
@@ -105,6 +121,46 @@ final class UserRepository
             $this->pdo->commit();
 
             return array_merge($user, array('company_slug' => $company['slug'], 'company_name' => $company['name']));
+        } catch (Throwable $exception) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $exception;
+        }
+    }
+
+    public function createGlobalCustomer(string $email, string $password, string $firstName, string $lastName, string $phone = '', string $notes = ''): array
+    {
+        $this->pdo->beginTransaction();
+        try {
+            $statement = $this->pdo->prepare(
+                'INSERT INTO users (company_id, email, username, password_hash, role)
+                 VALUES (NULL, :email, NULL, :password_hash, :role)
+                 RETURNING *'
+            );
+            $statement->execute(array(
+                ':email' => $email,
+                ':password_hash' => password_hash($password, PASSWORD_DEFAULT),
+                ':role' => 'customer',
+            ));
+            $user = $statement->fetch();
+
+            $profileStatement = $this->pdo->prepare(
+                'INSERT INTO customer_profiles (user_id, first_name, last_name, email, phone, notes, is_active)
+                 VALUES (:user_id, :first_name, :last_name, :email, :phone, :notes, TRUE)'
+            );
+            $profileStatement->execute(array(
+                ':user_id' => $user['id'],
+                ':first_name' => $firstName,
+                ':last_name' => $lastName,
+                ':email' => $email,
+                ':phone' => $phone,
+                ':notes' => $notes,
+            ));
+
+            $this->pdo->commit();
+
+            return array_merge($user, array('company_slug' => '', 'company_name' => 'Marketplace'));
         } catch (Throwable $exception) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();

@@ -28,6 +28,16 @@ final class AuthService
         return $this->issueTokenPair($user);
     }
 
+    public function loginCustomer(string $email, string $password): array
+    {
+        $user = $this->users->findGlobalCustomerByEmail($email);
+        if ($user === null || !password_verify($password, (string) $user['password_hash'])) {
+            throw new RuntimeException('Credenciales invalidas');
+        }
+
+        return $this->issueTokenPair($user);
+    }
+
     public function registerCompany(string $companyName, string $companySlug, string $email, string $password, string $username = ''): array
     {
         $user = $this->users->createCompanyAdmin($companyName, $companySlug, $email, $password, $username);
@@ -38,6 +48,13 @@ final class AuthService
     public function registerCustomer(string $companySlug, string $email, string $password, string $firstName, string $lastName, string $phone = '', string $notes = ''): array
     {
         $user = $this->users->createCompanyCustomer($companySlug, $email, $password, $firstName, $lastName, $phone, $notes);
+
+        return $this->issueTokenPair($user);
+    }
+
+    public function registerGlobalCustomer(string $email, string $password, string $firstName, string $lastName, string $phone = '', string $notes = ''): array
+    {
+        $user = $this->users->createGlobalCustomer($email, $password, $firstName, $lastName, $phone, $notes);
 
         return $this->issueTokenPair($user);
     }

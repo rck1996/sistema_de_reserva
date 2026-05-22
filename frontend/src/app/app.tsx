@@ -9,7 +9,7 @@ import { BookingDrawer } from '../features/booking/booking-drawer';
 import { useSaasAuthStore } from '../features/auth/saas-auth-store';
 import { Metrics } from '../features/dashboard/metrics';
 import { AppShell } from '../layouts/app-shell';
-import { createSaasDemoBooking, getSaasDashboard, getSaasMe, listSaasBookings, listSaasCustomers, listSaasDisciplines, listSaasProfessionals, listSaasServices, loginSaas, logoutSaas, refreshSaas, registerSaasCustomer } from '../services/api-v1-client';
+import { createSaasDemoBooking, getSaasDashboard, getSaasMe, listSaasBookings, listSaasCustomers, listSaasDisciplines, listSaasProfessionals, listSaasServices, loginSaas, loginSaasCustomer, logoutSaas, refreshSaas, registerSaasCustomer } from '../services/api-v1-client';
 import { createCustomerBooking, getAdminDashboard, getAdminManagement, getAuthState, getCustomerDashboard, getPublicData, getStaffDashboard, postAuth, saveAdminManagement } from '../services/portal-api';
 import { useBookingStore } from '../store/booking-store';
 import type { Booking, Professional, Service } from '../types/booking';
@@ -170,6 +170,16 @@ function SaasLoginPage({ onNavigate }: { onNavigate: (route: string) => void }) 
       setMessage('Login JWT correcto. Token guardado en localStorage para pruebas.');
     },
   });
+  const customerLogin = useMutation({
+    mutationFn: (form: FormData) => loginSaasCustomer({
+      email: String(form.get('customer_email') ?? '').toLowerCase(),
+      password: String(form.get('customer_password') ?? ''),
+    }),
+    onSuccess: (payload) => {
+      setSession({ accessToken: payload.access_token, refreshToken: payload.refresh_token, user: payload.user });
+      setMessage('Login cliente marketplace correcto.');
+    },
+  });
   const me = useMutation({
     mutationFn: () => getSaasMe(accessToken),
     onSuccess: (payload) => setMessage(`Sesion valida: ${payload.user.email} / ${payload.user.role}`),
@@ -230,7 +240,7 @@ function SaasLoginPage({ onNavigate }: { onNavigate: (route: string) => void }) 
       setMessage(`Reserva creada: ${payload.data.service_name} / ${payload.data.professional_name}`);
     },
   });
-  const currentError = login.error || me.error || refresh.error || logout.error || services.error || disciplines.error || professionals.error || customers.error || bookings.error || createBooking.error;
+  const currentError = login.error || customerLogin.error || me.error || refresh.error || logout.error || services.error || disciplines.error || professionals.error || customers.error || bookings.error || createBooking.error;
 
   return (
     <PublicFrame onNavigate={onNavigate}>
@@ -252,6 +262,12 @@ function SaasLoginPage({ onNavigate }: { onNavigate: (route: string) => void }) 
             <Input name="email" type="email" defaultValue="admin@demo.local" placeholder="admin@demo.local" required />
             <Input name="password" type="password" defaultValue="Admin12345" placeholder="Clave" required />
             <Button className="w-full" variant="primary" type="submit" disabled={login.isPending}>{login.isPending ? 'Validando...' : 'Login API v1'}</Button>
+          </form>
+          <form className="mt-5 space-y-4 rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-4" onSubmit={(event) => submitForm(event, customerLogin.mutate, '')}>
+            <p className="text-sm font-semibold text-white">Login cliente marketplace</p>
+            <Input name="customer_email" type="email" placeholder="cliente@dominio.cl" required />
+            <Input name="customer_password" type="password" placeholder="Clave cliente" required />
+            <Button className="w-full" type="submit" disabled={customerLogin.isPending}>{customerLogin.isPending ? 'Validando cliente...' : 'Login cliente global'}</Button>
           </form>
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
             <Button onClick={() => me.mutate()} disabled={!accessToken || me.isPending}>Probar me</Button>
@@ -293,7 +309,6 @@ function SaasCustomerRegisterPage({ onNavigate }: { onNavigate: (route: string) 
   const { setSession } = useSaasAuthStore();
   const register = useMutation({
     mutationFn: (form: FormData) => registerSaasCustomer({
-      companySlug: String(form.get('company_slug') ?? 'demo').trim().toLowerCase() || 'demo',
       firstName: String(form.get('first_name') ?? ''),
       lastName: String(form.get('last_name') ?? ''),
       email: String(form.get('email') ?? '').toLowerCase(),
@@ -312,21 +327,15 @@ function SaasCustomerRegisterPage({ onNavigate }: { onNavigate: (route: string) 
         <Card className="p-8">
           <Badge tone="emerald">Marketplace cliente</Badge>
           <h1 className="mt-5 text-5xl font-semibold tracking-[-0.06em] text-white">Registro cliente SaaS v1.</h1>
-            <p className="mt-4 text-sm leading-6 text-slate-400">El cliente se inscribe dentro de una empresa especifica. En esta base local solo existe el tenant demo; mas adelante el slug vendra desde la URL publica de cada empresa.</p>
+          <p className="mt-4 text-sm leading-6 text-slate-400">El cliente crea una cuenta global en el marketplace. Luego puede buscar empresas e inscribirse para reservar.</p>
           <div className="mt-6 rounded-[1.5rem] border border-white/10 bg-white/[0.05] p-4 text-sm text-slate-300">
             <p className="font-semibold text-white">Modelo actual</p>
-            <p className="mt-2">Empresa: demo</p>
-              <p>Transicion actual: registro en demo; objetivo: cuenta global + membresias.</p>
+              <p className="mt-2">Login global: email + password</p>
+              <p>Inscripcion posterior: cliente ↔ empresa mediante membresia.</p>
           </div>
         </Card>
         <Card className="p-6">
             <form className="space-y-4" onSubmit={(event) => submitForm(event, register.mutate, '')}>
-            <label className="block text-sm font-medium text-slate-300">
-              Empresa
-              <Select className="mt-2" name="company_slug" defaultValue="demo" required>
-                <option value="demo">demo - Demo Company</option>
-              </Select>
-            </label>
             <div className="grid gap-4 sm:grid-cols-2">
               <Input name="first_name" placeholder="Nombre" required />
               <Input name="last_name" placeholder="Apellido" required />

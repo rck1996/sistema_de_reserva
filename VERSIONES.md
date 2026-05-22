@@ -51,6 +51,8 @@ Incluye:
 - registro de cliente API v1 por empresa con `users.role=customer`, `customers.user_id` y JWT automatico
 - portal cliente SaaS inicial con `GET /customer/me` y `GET /customer/bookings` resolviendo identidad desde JWT
 - inicio de adaptacion a marketplace: perfiles globales de cliente, membresias empresa-cliente, perfiles publicos de empresa, tarifas por profesional/servicio y bloqueos de disponibilidad
+- auth cliente global con login/registro sin `company_slug`, endpoints marketplace publicos e inscripcion cliente-empresa
+- portal cliente adaptado a `customer_profiles` y agenda global preparada para multiples empresas
 
 ## En desarrollo - 2026-05-14
 

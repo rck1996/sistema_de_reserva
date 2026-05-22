@@ -9,7 +9,6 @@ require_once __DIR__ . '/../../../repositories/CustomerPortalRepository.php';
 
 $claims = authenticated_claims();
 authorize_roles($claims, array('customer'));
-$companyId = tenant_company_id($claims);
 $userId = (string) ($claims['user_id'] ?? '');
 if ($userId === '') {
     json_response(array('ok' => false, 'error' => 'Usuario requerido'), 403);
@@ -18,7 +17,7 @@ if ($userId === '') {
 try {
     json_response(array(
         'ok' => true,
-        'data' => (new CustomerPortalRepository(backend_pdo()))->bookingsForUser($companyId, $userId),
+        'data' => (new CustomerPortalRepository(backend_pdo()))->bookingsForUser($userId),
     ));
 } catch (Throwable $exception) {
     json_response(array('ok' => false, 'error' => $exception->getMessage()), 400);

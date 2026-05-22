@@ -265,6 +265,34 @@ Reglas:
 - El cliente no puede listar otros clientes.
 - El cliente no puede ver reservas de otro tenant.
 
+## Marketplace Publico
+
+```http
+GET /api/v1/marketplace/companies.php
+```
+
+Lista empresas publicas del marketplace.
+
+```http
+GET /api/v1/marketplace/companies.php?slug=demo
+```
+
+Retorna perfil publico, disciplinas, servicios, profesionales y tarifas efectivas.
+
+```http
+POST /api/v1/marketplace/enroll.php
+Authorization: Bearer CUSTOMER_ACCESS_TOKEN
+Content-Type: application/json
+```
+
+```json
+{
+  "company_slug": "demo"
+}
+```
+
+Inscribe al cliente global autenticado en una empresa usando `company_customers`.
+
 ## Prueba Rapida En React
 
 1. Levantar backend y frontend con `.\start-frontend.cmd`.
@@ -274,7 +302,7 @@ Reglas:
 5. Usar `Abrir dashboard SaaS v1` para revisar métricas reales desde PostgreSQL.
 6. Usar `Abrir calendario SaaS v1` para revisar reservas en FullCalendar, filtros, drawer y acciones de estado.
 7. Usar `Abrir clientes SaaS v1` para revisar búsqueda y creación de clientes sobre PostgreSQL.
-8. Usar `Registro cliente SaaS` para probar el registro cliente transicional mientras se migra a cuenta global marketplace.
+8. Usar `Registro cliente SaaS` para crear cuenta global marketplace.
 9. Usar `Portal cliente SaaS` para revisar perfil y reservas propias.
 
 ## Profesionales

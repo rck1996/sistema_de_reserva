@@ -27,7 +27,7 @@ export function SaasCustomerPortal({ accessToken }: SaasCustomerPortalProps) {
       <Card className="h-fit">
         <CardHeader>
           <Badge tone="emerald"><UserRound size={14} className="mr-2" /> Perfil cliente</Badge>
-          <h2 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-white">Cuenta por empresa.</h2>
+          <h2 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-white">Cuenta global marketplace.</h2>
           <p className="mt-2 text-sm leading-6 text-slate-400">Este perfil se resuelve desde el JWT y `customers.user_id`, no desde un ID enviado por frontend.</p>
         </CardHeader>
         <CardContent>
@@ -38,7 +38,7 @@ export function SaasCustomerPortal({ accessToken }: SaasCustomerPortalProps) {
               <Info label="Nombre" value={`${profile.first_name} ${profile.last_name}`} />
               <Info label="Correo" value={profile.email} />
               <Info label="Telefono" value={profile.phone || '-'} />
-              <Info label="Empresa" value={`${profile.company_name} (${profile.company_slug})`} />
+              <Info label="Tipo de cuenta" value="Cliente marketplace global" />
             </div>
           ) : null}
         </CardContent>
@@ -64,7 +64,7 @@ export function SaasCustomerPortal({ accessToken }: SaasCustomerPortalProps) {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h3 className="font-semibold text-white">{booking.service_name}</h3>
-                    <p className="mt-1 text-sm text-slate-400">Con {booking.professional_name}</p>
+                    <p className="mt-1 text-sm text-slate-400">Con {booking.professional_name} en {booking.company_name ?? 'empresa'}</p>
                   </div>
                   <Badge tone={booking.status === 'confirmed' ? 'emerald' : booking.status === 'cancelled' ? 'rose' : 'amber'}>{booking.status}</Badge>
                 </div>

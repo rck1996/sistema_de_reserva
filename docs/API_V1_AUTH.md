@@ -116,7 +116,49 @@ Esto crea:
 - access token
 - refresh token
 
-## Register Cliente
+## Login Cliente Marketplace
+
+```http
+POST /api/v1/auth/customer-login.php
+Content-Type: application/json
+```
+
+```json
+{
+  "email": "camila@demo.local",
+  "password": "Cliente123"
+}
+```
+
+El cliente marketplace inicia sesion globalmente, sin `company_slug`.
+
+## Register Cliente Marketplace
+
+```http
+POST /api/v1/auth/customer-register.php
+Content-Type: application/json
+```
+
+```json
+{
+  "first_name": "Camila",
+  "last_name": "Rojas",
+  "email": "camila@demo.local",
+  "phone": "+56911111111",
+  "password": "Cliente123"
+}
+```
+
+Esto crea:
+
+- `users.role = customer`
+- `customer_profiles.user_id = users.id`
+- access token
+- refresh token
+
+## Register Cliente Tenant Legacy
+
+Legacy. No usar para nuevas pantallas marketplace. Se mantiene temporalmente solo para compatibilidad durante la migracion.
 
 ```http
 POST /api/v1/auth/register-customer.php
@@ -147,7 +189,7 @@ Modelo marketplace objetivo:
 - el cliente tiene cuenta global.
 - el cliente puede inscribirse en multiples empresas mediante `company_customers`.
 - el portal cliente debe resolver `users.id -> customer_profiles.user_id`; no acepta `customer_id` desde frontend.
-- la implementacion actual de `register-customer.php` queda como paso transicional mientras se migra el login a cuenta global sin `company_slug`.
+- `register-customer.php` queda marcado como legacy; usar `customer-register.php` y `customer-login.php` para el marketplace.
 
 ## Claims JWT
 
