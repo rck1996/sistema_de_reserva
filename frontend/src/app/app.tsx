@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CalendarDays, Clock3, History, LockKeyhole, LogOut, Settings, Sparkles, UserRound, WandSparkles } from 'lucide-react';
+import { Activity, ArrowUpRight, CalendarDays, Clock3, History, LockKeyhole, LogOut, Settings, Sparkles, UserRound, WandSparkles } from 'lucide-react';
 import { FormEvent, lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
@@ -9,7 +9,7 @@ import { BookingDrawer } from '../features/booking/booking-drawer';
 import { useSaasAuthStore } from '../features/auth/saas-auth-store';
 import { Metrics } from '../features/dashboard/metrics';
 import { AppShell } from '../layouts/app-shell';
-import { createSaasDemoBooking, getSaasMe, listSaasBookings, listSaasCustomers, listSaasDisciplines, listSaasProfessionals, listSaasServices, loginSaas, logoutSaas, refreshSaas } from '../services/api-v1-client';
+import { createSaasDemoBooking, getSaasDashboard, getSaasMe, listSaasBookings, listSaasCustomers, listSaasDisciplines, listSaasProfessionals, listSaasServices, loginSaas, logoutSaas, refreshSaas } from '../services/api-v1-client';
 import { createCustomerBooking, getAdminDashboard, getAdminManagement, getAuthState, getCustomerDashboard, getPublicData, getStaffDashboard, postAuth, saveAdminManagement } from '../services/portal-api';
 import { useBookingStore } from '../store/booking-store';
 import type { Booking, Professional, Service } from '../types/booking';
@@ -59,6 +59,7 @@ function Portal() {
   if (route === 'cliente') return <CustomerPage onNavigate={navigate} onLogout={() => logout.mutate()} />;
   if (route === 'profesional') return <StaffPage onNavigate={navigate} onLogout={() => logout.mutate()} />;
   if (route === 'saas-login') return <SaasLoginPage onNavigate={navigate} />;
+  if (route === 'saas-dashboard') return <SaasDashboardPage onNavigate={navigate} />;
   if (route === 'login') return <LoginPage csrfToken={csrfToken} onNavigate={navigate} />;
   return <HomePage csrfToken={csrfToken} onNavigate={navigate} session={auth.data?.session} />;
 }
@@ -250,6 +251,7 @@ function SaasLoginPage({ onNavigate }: { onNavigate: (route: string) => void }) 
             <Button onClick={() => refresh.mutate()} disabled={!refreshToken || refresh.isPending}>Refresh</Button>
             <Button variant="danger" onClick={() => logout.mutate()} disabled={!refreshToken || logout.isPending}>Logout</Button>
           </div>
+          <Button className="mt-3 w-full" variant="primary" onClick={() => onNavigate('saas-dashboard')} disabled={!accessToken}>Abrir dashboard SaaS v1</Button>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <Button onClick={() => disciplines.mutate()} disabled={!accessToken || disciplines.isPending}>Listar disciplinas tenant</Button>
             <Button onClick={() => services.mutate()} disabled={!accessToken || services.isPending}>Listar servicios tenant</Button>
@@ -269,6 +271,129 @@ function SaasLoginPage({ onNavigate }: { onNavigate: (route: string) => void }) 
           </div>
           {resourcePreview ? <pre className="mt-5 max-h-72 overflow-auto rounded-[1.5rem] border border-white/10 bg-black/30 p-4 text-xs text-slate-300">{resourcePreview}</pre> : null}
         </Card>
+      </div>
+    </PublicFrame>
+  );
+}
+
+function SaasDashboardPage({ onNavigate }: { onNavigate: (route: string) => void }) {
+  const { accessToken, user, hydrate, clearSession } = useSaasAuthStore();
+  useEffect(() => hydrate(), [hydrate]);
+  const dashboard = useQuery({
+    queryKey: ['saas-dashboard', accessToken],
+    queryFn: () => getSaasDashboard(accessToken),
+    enabled: Boolean(accessToken),
+    retry: false,
+  });
+
+  if (!accessToken) {
+    return (
+      <PublicFrame onNavigate={onNavigate}>
+        <Card className="mx-auto max-w-2xl p-8">
+          <Badge tone="rose">Sesion requerida</Badge>
+          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em] text-white">Entra con JWT para ver el dashboard SaaS.</h1>
+          <Button className="mt-6" variant="primary" onClick={() => onNavigate('saas-login')}>Ir a login API v1</Button>
+        </Card>
+      </PublicFrame>
+    );
+  }
+
+  const data = dashboard.data?.data;
+  const metrics = data?.metrics;
+  const metricCards = [
+    { label: 'Reservas totales', value: metrics?.total_bookings ?? '0', tone: 'cyan' as const },
+    { label: 'Proximas activas', value: metrics?.upcoming_bookings ?? '0', tone: 'emerald' as const },
+    { label: 'Clientes activos', value: metrics?.active_customers ?? '0', tone: 'violet' as const },
+    { label: 'Ingresos estimados', value: `$${Number(metrics?.estimated_revenue ?? 0).toLocaleString('es-CL')}`, tone: 'amber' as const },
+  ];
+
+  return (
+    <PublicFrame onNavigate={onNavigate}>
+      <div className="mx-auto max-w-7xl space-y-6">
+        <Card className="overflow-hidden">
+          <div className="grid gap-6 p-6 lg:grid-cols-[1fr_auto] lg:p-8">
+            <div>
+              <Badge tone="cyan"><Activity size={14} className="mr-2" /> Dashboard SaaS v1</Badge>
+              <h1 className="mt-5 text-5xl font-semibold tracking-[-0.06em] text-white">Operacion en tiempo real sobre PostgreSQL.</h1>
+              <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-400">Vista inicial protegida por JWT y aislada por empresa. Los datos vienen desde API v1, no desde SQLite legacy.</p>
+            </div>
+            <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-sm text-slate-300">
+              <p className="font-semibold text-white">{user?.company_name ?? 'Empresa'}</p>
+              <p className="mt-2">{user?.email}</p>
+              <p className="mt-1 text-slate-500">{user?.role}</p>
+              <Button className="mt-4 w-full" variant="danger" onClick={() => { clearSession(); onNavigate('saas-login'); }}>Cerrar JWT</Button>
+            </div>
+          </div>
+        </Card>
+
+        {dashboard.isLoading ? <CalendarSkeleton /> : null}
+        {dashboard.isError ? <Card className="p-6 text-rose-100">No se pudo cargar dashboard API v1: {dashboard.error.message}</Card> : null}
+        {data ? (
+          <>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {metricCards.map((metric) => (
+                <Card key={metric.label} className="p-5">
+                  <Badge tone={metric.tone}>{metric.label}</Badge>
+                  <p className="mt-5 text-4xl font-semibold tracking-[-0.05em] text-white">{metric.value}</p>
+                </Card>
+              ))}
+            </div>
+
+            <div className="grid gap-6 xl:grid-cols-[1.15fr_.85fr]">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-white">Proximas reservas</p>
+                      <p className="mt-1 text-sm text-slate-500">Agenda activa de la empresa autenticada.</p>
+                    </div>
+                    <Button onClick={() => onNavigate('saas-login')}><ArrowUpRight size={16} className="mr-2" /> Probar API</Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {data.upcoming_bookings.length === 0 ? <p className="text-sm text-slate-500">Sin reservas proximas.</p> : null}
+                  {data.upcoming_bookings.map((booking) => (
+                    <div key={booking.id} className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p className="font-semibold text-white">{booking.service_name}</p>
+                          <p className="mt-1 text-sm text-slate-400">{booking.customer_first_name} {booking.customer_last_name} con {booking.professional_name}</p>
+                        </div>
+                        <Badge tone={booking.status === 'confirmed' ? 'emerald' : 'amber'}>{booking.status}</Badge>
+                      </div>
+                      <p className="mt-3 text-xs text-slate-500">{new Date(booking.starts_at).toLocaleString('es-CL')}</p>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader><p className="text-sm font-semibold text-white">Estados</p></CardHeader>
+                  <CardContent className="space-y-3">
+                    {data.bookings_by_status.map((item) => (
+                      <div key={item.status} className="flex items-center justify-between rounded-2xl bg-white/[0.04] px-4 py-3 text-sm">
+                        <span className="text-slate-300">{item.status}</span>
+                        <span className="font-semibold text-white">{item.total}</span>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader><p className="text-sm font-semibold text-white">Carga staff</p></CardHeader>
+                  <CardContent className="space-y-3">
+                    {data.staff_load.map((staff) => (
+                      <div key={staff.id} className="flex items-center justify-between rounded-2xl bg-white/[0.04] px-4 py-3 text-sm">
+                        <span className="flex items-center gap-2 text-slate-300"><span className="h-2.5 w-2.5 rounded-full" style={{ background: staff.calendar_color }} />{staff.name}</span>
+                        <span className="font-semibold text-white">{staff.upcoming_total}</span>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </>
+        ) : null}
       </div>
     </PublicFrame>
   );

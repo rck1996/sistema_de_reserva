@@ -43,6 +43,7 @@ Incluye:
 - notificaciones de correo y WhatsApp desactivadas por defecto mientras se define proveedor transaccional
 - Mercado Pago pausado hasta nuevo aviso para priorizar reservas multiempresa
 - API v1 de reservas sobre PostgreSQL con validacion tenant, servicio/profesional y anti-solapamiento basico
+- dashboard API v1 con metricas reales PostgreSQL y primera pantalla React protegida `/saas-dashboard`
 
 ## En desarrollo - 2026-05-14
 

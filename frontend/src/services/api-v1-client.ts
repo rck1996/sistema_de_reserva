@@ -148,6 +148,33 @@ export type SaasBooking = {
   service_duration_minutes: number;
 };
 
+export type SaasDashboard = {
+  metrics: {
+    total_bookings: string;
+    today_bookings: string;
+    upcoming_bookings: string;
+    cancelled_bookings: string;
+    active_customers: string;
+    active_professionals: string;
+    active_services: string;
+    estimated_revenue: string;
+  };
+  bookings_by_status: Array<{ status: string; total: string }>;
+  upcoming_bookings: Array<{
+    id: string;
+    starts_at: string;
+    ends_at: string;
+    status: string;
+    customer_first_name: string;
+    customer_last_name: string;
+    professional_name: string;
+    professional_color: string;
+    service_name: string;
+  }>;
+  top_services: Array<{ id: string; name: string; color: string; total: string }>;
+  staff_load: Array<{ id: string; name: string; calendar_color: string; upcoming_total: string }>;
+};
+
 export function listSaasServices(accessToken: string) {
   return apiV1<{ ok: true; data: SaasService[] }>('/services.php', {}, accessToken);
 }
@@ -166,6 +193,10 @@ export function listSaasCustomers(accessToken: string) {
 
 export function listSaasBookings(accessToken: string) {
   return apiV1<{ ok: true; data: SaasBooking[] }>('/bookings.php', {}, accessToken);
+}
+
+export function getSaasDashboard(accessToken: string) {
+  return apiV1<{ ok: true; data: SaasDashboard }>('/dashboard.php', {}, accessToken);
 }
 
 export async function createSaasDemoBooking(accessToken: string) {

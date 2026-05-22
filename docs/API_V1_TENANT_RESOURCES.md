@@ -175,12 +175,41 @@ Reprogramar:
 }
 ```
 
+## Dashboard
+
+```http
+GET /api/v1/dashboard.php
+Authorization: Bearer ACCESS_TOKEN
+```
+
+Retorna métricas operativas de la empresa autenticada:
+
+- reservas totales
+- reservas de hoy
+- próximas reservas activas
+- cancelaciones
+- clientes activos
+- profesionales activos
+- servicios activos
+- ingresos estimados
+- reservas por estado
+- próximas reservas
+- servicios más reservados
+- carga de staff
+
+Roles permitidos:
+
+- `super_admin`
+- `admin_empresa`
+- `staff`
+
 ## Prueba Rapida En React
 
 1. Levantar backend y frontend con `.\start-frontend.cmd`.
 2. Abrir `http://127.0.0.1:5173/saas-login`.
 3. Iniciar sesion con `admin@demo.local` / `Admin12345` / empresa `demo`.
 4. Usar los botones `Listar disciplinas tenant`, `Listar servicios tenant`, `Listar profesionales tenant`, `Listar clientes tenant`, `Listar reservas tenant` y `Crear reserva demo`.
+5. Usar `Abrir dashboard SaaS v1` para revisar métricas reales desde PostgreSQL.
 
 ## Profesionales
 
@@ -230,6 +259,7 @@ GET /api/v1/professionals.php: OK
 GET /api/v1/customers.php: OK
 GET /api/v1/bookings.php: OK
 POST /api/v1/bookings.php: OK
+GET /api/v1/dashboard.php: OK
 tenant desde JWT: OK
 build frontend: OK
 typecheck frontend: OK
