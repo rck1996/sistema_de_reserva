@@ -4,6 +4,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import listPlugin from '@fullcalendar/list';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import type { EventApi } from '@fullcalendar/core';
+import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Select } from '../../components/ui/input';
@@ -51,8 +52,20 @@ export function BookingCalendar({
   const bookings = useBookingStore((state) => state.bookings);
   const moveBooking = useBookingStore((state) => state.moveBooking);
   const setSelectedBooking = useBookingStore((state) => state.setSelectedBooking);
+  const [professionalFilter, setProfessionalFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [serviceFilter, setServiceFilter] = useState('all');
 
-  const events = bookings.map((booking) => ({
+  const professionals = useMemo(() => uniqueOptions(bookings.map((booking) => ({ id: booking.professionalId, name: booking.professionalName }))), [bookings]);
+  const services = useMemo(() => uniqueOptions(bookings.map((booking) => ({ id: booking.serviceId, name: booking.serviceName }))), [bookings]);
+  const filteredBookings = useMemo(() => bookings.filter((booking) => {
+    if (professionalFilter !== 'all' && booking.professionalId !== professionalFilter) return false;
+    if (statusFilter !== 'all' && booking.status !== statusFilter) return false;
+    if (serviceFilter !== 'all' && booking.serviceId !== serviceFilter) return false;
+    return true;
+  }), [bookings, professionalFilter, serviceFilter, statusFilter]);
+
+  const events = filteredBookings.map((booking) => ({
     id: booking.id,
     title: `${booking.serviceName} - ${booking.customerName}`,
     start: booking.start,
@@ -107,34 +120,35 @@ export function BookingCalendar({
           </p>
         </div>
         {showFilters ? <div className="grid w-full min-w-0 gap-3 sm:grid-cols-3 xl:max-w-[34rem]">
-          <Select aria-label="Filtrar profesional">
-            <option>Todos los profesionales</option>
-            <option>Amelia Torres</option>
-            <option>Mateo Silva</option>
-            <option>Renata Vidal</option>
+          <Select aria-label="Filtrar profesional" value={professionalFilter} onChange={(event) => setProfessionalFilter(event.target.value)}>
+            <option value="all">Todos los profesionales</option>
+            {professionals.map((professional) => <option key={professional.id} value={professional.id}>{professional.name}</option>)}
           </Select>
-          <Select aria-label="Filtrar estado">
-            <option>Todos los estados</option>
-            <option>Pendiente</option>
-            <option>Confirmada</option>
-            <option>Completada</option>
+          <Select aria-label="Filtrar estado" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+            <option value="all">Todos los estados</option>
+            {Object.entries(statusLabel).map(([status, label]) => <option key={status} value={status}>{label}</option>)}
           </Select>
-          <Select aria-label="Filtrar servicio">
-            <option>Todos los servicios</option>
-            <option>Sesion integral</option>
-            <option>Diagnostico experto</option>
+          <Select aria-label="Filtrar servicio" value={serviceFilter} onChange={(event) => setServiceFilter(event.target.value)}>
+            <option value="all">Todos los servicios</option>
+            {services.map((service) => <option key={service.id} value={service.id}>{service.name}</option>)}
           </Select>
         </div> : null}
       </CardHeader>
       <CardContent>
-        <div className="mb-4 flex flex-wrap gap-2">
+        <div className="mb-4 flex flex-wrap items-center gap-2">
           {Object.entries(statusLabel).map(([status, label]) => (
             <Badge key={status} tone={status === 'completed' ? 'emerald' : status === 'cancelled' ? 'rose' : 'slate'}>
               <span className="mr-2 h-2 w-2 rounded-full" style={{ backgroundColor: statusColor[status as BookingStatus] }} />
               {label}
             </Badge>
           ))}
+          {showFilters ? <Badge tone="cyan">{filteredBookings.length} de {bookings.length} reservas visibles</Badge> : null}
         </div>
+        {showFilters && bookings.length > 0 && filteredBookings.length === 0 ? (
+          <div className="mb-4 rounded-[1.35rem] border border-dashed border-white/15 bg-white/[0.03] p-4 text-sm text-slate-400">
+            No hay reservas que coincidan con los filtros seleccionados.
+          </div>
+        ) : null}
         <div className="min-w-0 overflow-hidden rounded-[1.5rem] border border-white/10 bg-black/15 p-3">
           <FullCalendar
             plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
@@ -164,4 +178,15 @@ export function BookingCalendar({
       </CardContent>
     </Card>
   );
+}
+
+function uniqueOptions(options: Array<{ id: string; name: string }>) {
+  const map = new Map<string, string>();
+  options.forEach((option) => {
+    if (option.id && !map.has(option.id)) {
+      map.set(option.id, option.name);
+    }
+  });
+
+  return Array.from(map, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name, 'es'));
 }

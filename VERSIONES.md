@@ -34,6 +34,7 @@ Incluye:
 - paleta de comandos real con `Ctrl+K`, busqueda, navegacion por teclado y acciones por rol
 - login React con opcion `Recordarme por 30 dias` y timeout extendido sin cerrar sesion al volver al inicio
 - licencia propietaria rck1996.com aplicada con `LICENSE.md`, `NOTICE.md` y aviso en README
+- filtros del calendario conectados a datos reales por profesional, estado y servicio
 
 ## En desarrollo - 2026-05-14
 
