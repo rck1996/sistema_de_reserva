@@ -210,6 +210,7 @@ Roles permitidos:
 3. Iniciar sesion con `admin@demo.local` / `Admin12345` / empresa `demo`.
 4. Usar los botones `Listar disciplinas tenant`, `Listar servicios tenant`, `Listar profesionales tenant`, `Listar clientes tenant`, `Listar reservas tenant` y `Crear reserva demo`.
 5. Usar `Abrir dashboard SaaS v1` para revisar métricas reales desde PostgreSQL.
+6. Usar `Abrir calendario SaaS v1` para revisar reservas en FullCalendar, filtros, drawer y acciones de estado.
 
 ## Profesionales
 

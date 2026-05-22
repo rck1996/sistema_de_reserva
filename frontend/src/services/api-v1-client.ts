@@ -195,6 +195,20 @@ export function listSaasBookings(accessToken: string) {
   return apiV1<{ ok: true; data: SaasBooking[] }>('/bookings.php', {}, accessToken);
 }
 
+export function updateSaasBookingStatus(accessToken: string, input: { id: string; status: SaasBooking['status'] }) {
+  return apiV1<{ ok: true; data: SaasBooking }>('/bookings.php', {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  }, accessToken);
+}
+
+export function rescheduleSaasBooking(accessToken: string, input: { id: string; starts_at: string }) {
+  return apiV1<{ ok: true; data: SaasBooking }>('/bookings.php', {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  }, accessToken);
+}
+
 export function getSaasDashboard(accessToken: string) {
   return apiV1<{ ok: true; data: SaasDashboard }>('/dashboard.php', {}, accessToken);
 }

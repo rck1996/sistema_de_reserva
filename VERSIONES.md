@@ -44,6 +44,7 @@ Incluye:
 - Mercado Pago pausado hasta nuevo aviso para priorizar reservas multiempresa
 - API v1 de reservas sobre PostgreSQL con validacion tenant, servicio/profesional y anti-solapamiento basico
 - dashboard API v1 con metricas reales PostgreSQL y primera pantalla React protegida `/saas-dashboard`
+- calendario SaaS v1 protegido por JWT con FullCalendar, filtros, drawer y acciones de estado sobre PostgreSQL
 
 ## En desarrollo - 2026-05-14
 
