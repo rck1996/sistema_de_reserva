@@ -110,6 +110,7 @@ Estado actual en rama:
 - endpoints `/api/v1/auth/login.php`, `/register.php`, `/refresh.php`, `/logout.php`, `/me.php` creados
 - bridges bajo `sistema_de_reserva_app/api/v1/auth/` para exponerlos desde el webroot legacy
 - flujo `login -> me -> refresh -> logout` validado contra PostgreSQL local
+- frontend incremental `/saas-login` creado para probar JWT API v1 desde navegador sin reemplazar auth legacy
 
 ## Fase 3 - Multiempresa
 

@@ -136,3 +136,27 @@ me: OK
 refresh: OK
 logout: OK
 ```
+
+## Prueba Desde Frontend React
+
+Levantar frontend:
+
+```powershell
+.\start-frontend.cmd
+```
+
+Abrir:
+
+```text
+http://127.0.0.1:5173/saas-login
+```
+
+La pantalla permite probar:
+
+- login API v1
+- `GET /auth/me.php`
+- refresh token
+- logout
+- persistencia temporal en `localStorage`
+
+Esta pantalla es incremental y no reemplaza aun el login legacy.

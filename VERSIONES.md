@@ -36,6 +36,7 @@ Incluye:
 - licencia propietaria rck1996.com aplicada con `LICENSE.md`, `NOTICE.md` y aviso en README
 - filtros del calendario conectados a datos reales por profesional, estado y servicio
 - rama `develop/saas-postgres-jwt-mp`: Fase 2 JWT iniciada con endpoints API v1 auth y refresh tokens PostgreSQL
+- frontend incremental `/saas-login` conectado a API v1 JWT para probar login, me, refresh y logout
 
 ## En desarrollo - 2026-05-14
 

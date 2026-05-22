@@ -6,8 +6,10 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader } from '../components/ui/card';
 import { Input, Select, Textarea } from '../components/ui/input';
 import { BookingDrawer } from '../features/booking/booking-drawer';
+import { useSaasAuthStore } from '../features/auth/saas-auth-store';
 import { Metrics } from '../features/dashboard/metrics';
 import { AppShell } from '../layouts/app-shell';
+import { getSaasMe, loginSaas, logoutSaas, refreshSaas } from '../services/api-v1-client';
 import { createCustomerBooking, getAdminDashboard, getAdminManagement, getAuthState, getCustomerDashboard, getPublicData, getStaffDashboard, postAuth, saveAdminManagement } from '../services/portal-api';
 import { useBookingStore } from '../store/booking-store';
 import type { Booking, Professional, Service } from '../types/booking';
@@ -56,6 +58,7 @@ function Portal() {
   if (route === 'admin') return <AdminPage onNavigate={navigate} onLogout={() => logout.mutate()} />;
   if (route === 'cliente') return <CustomerPage onNavigate={navigate} onLogout={() => logout.mutate()} />;
   if (route === 'profesional') return <StaffPage onNavigate={navigate} onLogout={() => logout.mutate()} />;
+  if (route === 'saas-login') return <SaasLoginPage onNavigate={navigate} />;
   if (route === 'login') return <LoginPage csrfToken={csrfToken} onNavigate={navigate} />;
   return <HomePage csrfToken={csrfToken} onNavigate={navigate} session={auth.data?.session} />;
 }
@@ -79,6 +82,7 @@ function HomePage({ csrfToken, onNavigate, session }: { csrfToken: string; onNav
           <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-400">{data?.brand.heroSubtitle || 'Centraliza agenda, servicios, clientes y profesionales con una experiencia premium.'}</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button variant="primary" onClick={() => onNavigate('login')}>Ingresar</Button>
+            <Button onClick={() => onNavigate('saas-login')}>Probar API v1 JWT</Button>
             <Button onClick={() => document.getElementById('registro')?.scrollIntoView({ behavior: 'smooth' })}>Crear cliente</Button>
           </div>
         </Card>
@@ -138,6 +142,82 @@ function HomePage({ csrfToken, onNavigate, session }: { csrfToken: string; onNav
           </form>
         </Card>
       </Section>
+    </PublicFrame>
+  );
+}
+
+function SaasLoginPage({ onNavigate }: { onNavigate: (route: string) => void }) {
+  const { accessToken, refreshToken, user, hydrate, setSession, clearSession } = useSaasAuthStore();
+  const [message, setMessage] = useState('');
+  useEffect(() => hydrate(), [hydrate]);
+  const login = useMutation({
+    mutationFn: (form: FormData) => loginSaas({
+      companySlug: String(form.get('company_slug') ?? 'demo'),
+      email: String(form.get('email') ?? ''),
+      password: String(form.get('password') ?? ''),
+    }),
+    onSuccess: (payload) => {
+      setSession({ accessToken: payload.access_token, refreshToken: payload.refresh_token, user: payload.user });
+      setMessage('Login JWT correcto. Token guardado en localStorage para pruebas.');
+    },
+  });
+  const me = useMutation({
+    mutationFn: () => getSaasMe(accessToken),
+    onSuccess: (payload) => setMessage(`Sesion valida: ${payload.user.email} / ${payload.user.role}`),
+  });
+  const refresh = useMutation({
+    mutationFn: () => refreshSaas(refreshToken),
+    onSuccess: (payload) => {
+      setSession({ accessToken: payload.access_token, refreshToken: payload.refresh_token, user: payload.user });
+      setMessage('Refresh token rotado correctamente.');
+    },
+  });
+  const logout = useMutation({
+    mutationFn: () => logoutSaas(refreshToken),
+    onSuccess: () => {
+      clearSession();
+      setMessage('Sesion SaaS cerrada.');
+    },
+  });
+  const currentError = login.error || me.error || refresh.error || logout.error;
+
+  return (
+    <PublicFrame onNavigate={onNavigate}>
+      <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[.9fr_1.1fr]">
+        <Card className="p-8">
+          <Badge tone="violet"><LockKeyhole size={14} className="mr-2" /> API v1 JWT</Badge>
+          <h1 className="mt-5 text-5xl font-semibold tracking-[-0.06em] text-white">Prueba SaaS Auth</h1>
+          <p className="mt-4 text-sm leading-6 text-slate-400">Esta pantalla prueba la nueva autenticacion PostgreSQL/JWT sin reemplazar todavia el login legacy. Sirve para validar Fase 2 desde navegador.</p>
+          <div className="mt-6 rounded-[1.5rem] border border-white/10 bg-white/[0.05] p-4 text-sm text-slate-300">
+            <p className="font-semibold text-white">Demo</p>
+            <p className="mt-2">Empresa: <span className="text-cyan-100">demo</span></p>
+            <p>Email: <span className="text-cyan-100">admin@demo.local</span></p>
+            <p>Clave: <span className="text-cyan-100">Admin12345</span></p>
+          </div>
+        </Card>
+        <Card className="p-6">
+          <form className="space-y-4" onSubmit={(event) => submitForm(event, login.mutate, '')}>
+            <Input name="company_slug" defaultValue="demo" placeholder="company_slug" required />
+            <Input name="email" type="email" defaultValue="admin@demo.local" placeholder="admin@demo.local" required />
+            <Input name="password" type="password" defaultValue="Admin12345" placeholder="Clave" required />
+            <Button className="w-full" variant="primary" type="submit" disabled={login.isPending}>{login.isPending ? 'Validando...' : 'Login API v1'}</Button>
+          </form>
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <Button onClick={() => me.mutate()} disabled={!accessToken || me.isPending}>Probar me</Button>
+            <Button onClick={() => refresh.mutate()} disabled={!refreshToken || refresh.isPending}>Refresh</Button>
+            <Button variant="danger" onClick={() => logout.mutate()} disabled={!refreshToken || logout.isPending}>Logout</Button>
+          </div>
+          {message ? <p className="mt-5 rounded-2xl border border-emerald-300/20 bg-emerald-400/10 p-3 text-sm text-emerald-100">{message}</p> : null}
+          {currentError ? <p className="mt-5 rounded-2xl border border-rose-300/20 bg-rose-400/10 p-3 text-sm text-rose-100">{currentError.message}</p> : null}
+          <div className="mt-5 rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-xs leading-6 text-slate-400">
+            <p className="font-semibold text-white">Sesion actual</p>
+            <p>Usuario: {user?.email ?? 'sin sesion'}</p>
+            <p>Empresa: {user?.company_slug ?? '-'}</p>
+            <p>Rol: {user?.role ?? '-'}</p>
+            <p>Access token: {accessToken ? `${accessToken.slice(0, 24)}...` : '-'}</p>
+          </div>
+        </Card>
+      </div>
     </PublicFrame>
   );
 }
