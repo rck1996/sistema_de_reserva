@@ -310,13 +310,13 @@ function SaasCustomerRegisterPage({ onNavigate }: { onNavigate: (route: string) 
     <PublicFrame onNavigate={onNavigate}>
       <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[.9fr_1.1fr]">
         <Card className="p-8">
-          <Badge tone="emerald">Cuenta por empresa</Badge>
+          <Badge tone="emerald">Marketplace cliente</Badge>
           <h1 className="mt-5 text-5xl font-semibold tracking-[-0.06em] text-white">Registro cliente SaaS v1.</h1>
             <p className="mt-4 text-sm leading-6 text-slate-400">El cliente se inscribe dentro de una empresa especifica. En esta base local solo existe el tenant demo; mas adelante el slug vendra desde la URL publica de cada empresa.</p>
           <div className="mt-6 rounded-[1.5rem] border border-white/10 bg-white/[0.05] p-4 text-sm text-slate-300">
             <p className="font-semibold text-white">Modelo actual</p>
             <p className="mt-2">Empresa: demo</p>
-            <p>Login posterior: company_slug + email + password</p>
+              <p>Transicion actual: registro en demo; objetivo: cuenta global + membresias.</p>
           </div>
         </Card>
         <Card className="p-6">
@@ -379,7 +379,7 @@ function SaasCustomerPage({ onNavigate }: { onNavigate: (route: string) => void 
             <div>
               <Badge tone="emerald">Portal cliente</Badge>
               <h1 className="mt-3 text-5xl font-semibold tracking-[-0.06em] text-white">Tu cuenta en {user.company_name}.</h1>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">Sesion cliente por empresa. El historial se mantiene aislado por tenant.</p>
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">Sesion cliente marketplace. El siguiente paso es mostrar agenda global de todas sus empresas inscritas.</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button onClick={() => onNavigate('saas-login')}>Pruebas API</Button>

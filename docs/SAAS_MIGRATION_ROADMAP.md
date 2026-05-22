@@ -1,7 +1,7 @@
-# Roadmap SaaS PostgreSQL / JWT / Mercado Pago
+# Roadmap Marketplace SaaS PostgreSQL / JWT
 
 Este documento guia la evolucion incremental de `sistema_de_reserva` desde la
-arquitectura hibrida actual hacia una plataforma SaaS multiempresa.
+arquitectura hibrida actual hacia una plataforma marketplace SaaS multiempresa.
 
 ## Estado Actual
 
@@ -25,8 +25,9 @@ React + TypeScript
   -> API REST PHP /api/v1
   -> PostgreSQL
   -> JWT access/refresh tokens
-  -> Tenant isolation
-  -> Mercado Pago Checkout Pro
+  -> Marketplace multiempresa
+  -> Tenant isolation por empresa
+  -> Cuenta cliente global con membresias por empresa
 ```
 
 ## Principios
@@ -34,6 +35,9 @@ React + TypeScript
 - Migracion incremental sin romper el sistema actual.
 - No confiar en `company_id` ni roles enviados por frontend.
 - Todas las queries nuevas deben aislar por tenant.
+- El cliente final debe tener cuenta global y membresias con empresas.
+- Una empresa solo ve clientes inscritos en su empresa.
+- El cliente puede ver agenda global de todas sus empresas.
 - PostgreSQL productivo; SQLite queda solo como legado temporal.
 - PDO + prepared statements, sin ORM pesado.
 - Endpoints versionados bajo `/api/v1`.
@@ -112,9 +116,9 @@ Estado actual en rama:
 - flujo `login -> me -> refresh -> logout` validado contra PostgreSQL local
 - frontend incremental `/saas-login` creado para probar JWT API v1 desde navegador sin reemplazar auth legacy
 
-## Fase 3 - Multiempresa
+## Fase 3 - Marketplace Multiempresa
 
-Objetivo: aislar datos por empresa.
+Objetivo: combinar marketplace publico con operacion SaaS aislada por empresa.
 
 Tabla base:
 
@@ -143,11 +147,45 @@ Agregar `company_id` a:
 - notification_log
 - audit_log
 
-Tenant resolver:
+Modelo objetivo:
 
-- JWT
-- subdominio
-- slug en URL
+```text
+users
+  cuenta global
+
+companies
+  empresas publicadas en marketplace
+
+company_profiles
+  perfil publico, branding, contacto, estilo
+
+customer_profiles
+  perfil global del cliente
+
+company_customers
+  inscripcion cliente <-> empresa
+
+disciplines / services / professionals
+  catalogo por empresa
+
+professional_services
+  servicios por profesional con tarifa opcional
+
+professional_availability / professional_time_blocks
+  horarios, bloqueos, vacaciones y excepciones
+
+bookings
+  reserva con company_id + customer_profile_id + professional_id + service_id + final_price
+```
+
+Reglas:
+
+- el cliente inicia sesion una vez con cuenta global.
+- el cliente busca empresas y se inscribe antes de reservar.
+- la empresa ve solo miembros de `company_customers` de su `company_id`.
+- la agenda cliente puede mezclar reservas de varias empresas.
+- el precio historico de la reserva se guarda en `bookings.final_price`.
+- Mercado Pago sigue pausado hasta tener maduro el flujo marketplace.
 
 ## Fase 4 - Mercado Pago Checkout Pro
 

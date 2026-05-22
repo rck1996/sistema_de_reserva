@@ -274,7 +274,7 @@ Reglas:
 5. Usar `Abrir dashboard SaaS v1` para revisar métricas reales desde PostgreSQL.
 6. Usar `Abrir calendario SaaS v1` para revisar reservas en FullCalendar, filtros, drawer y acciones de estado.
 7. Usar `Abrir clientes SaaS v1` para revisar búsqueda y creación de clientes sobre PostgreSQL.
-8. Usar `Registro cliente SaaS` para probar cuenta cliente por empresa con JWT.
+8. Usar `Registro cliente SaaS` para probar el registro cliente transicional mientras se migra a cuenta global marketplace.
 9. Usar `Portal cliente SaaS` para revisar perfil y reservas propias.
 
 ## Profesionales

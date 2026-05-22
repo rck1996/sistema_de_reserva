@@ -29,9 +29,9 @@ El proyecto esta pensado para negocios que necesitan:
 
 No esta limitado a peluqueria. Puede adaptarse a centros de bienestar, asesoria, estetica, salud no critica, servicios profesionales y otros modelos de agenda similares.
 
-## Modelo SaaS y permisos
+## Modelo Marketplace SaaS y permisos
 
-La evolucion actual apunta a un SaaS multiempresa. Cada empresa opera su propio espacio aislado por `company_id`; el frontend nunca decide la empresa activa, porque el backend la obtiene desde el JWT.
+La evolucion actual apunta a un marketplace SaaS multiempresa. Las empresas operan su propio panel y perfil publico, mientras que el cliente final tiene una cuenta global para buscar empresas, inscribirse y ver una agenda unificada.
 
 Roles propuestos:
 
@@ -46,23 +46,28 @@ Regla de negocio clave:
 - `super_admin` no debe operar manualmente cada empresa; su rol es administrar la plataforma.
 - ninguna query productiva debe aceptar `company_id` desde el frontend.
 - toda lectura/escritura tenant debe filtrar por `company_id` obtenido desde el JWT.
+- la empresa solo ve clientes inscritos en su empresa.
+- el cliente puede estar inscrito en multiples empresas desde una sola cuenta.
+- el cliente solo puede reservar en una empresa si antes esta inscrito.
 
-Modelo de cuenta cliente actual:
+Modelo de cuenta cliente objetivo:
 
-- el cliente se registra dentro de una empresa especifica.
-- el login del cliente usa `company_slug + email + password`.
-- el mismo email puede existir en distintas empresas porque la restriccion es `UNIQUE(company_id, email)`.
-- una cuenta cliente de una empresa no comparte historial ni reservas con otra empresa.
-- este modelo privilegia SaaS B2B aislado por negocio antes que marketplace global.
+- el cliente tiene una cuenta global.
+- el cliente busca empresas publicas en el marketplace.
+- el cliente se inscribe en una empresa para poder reservar.
+- cada empresa ve los datos del cliente solo si existe una membresia en `company_customers`.
+- el cliente ve una agenda global con reservas de todas sus empresas.
 
 Ejemplo:
 
 ```text
-demo + camila@gmail.com
-centro-kine + camila@gmail.com
+camila@gmail.com
+  -> inscrita en Demo Company
+  -> inscrita en Centro Kine
+  -> agenda global con reservas de ambas empresas
 ```
 
-Son dos cuentas distintas, cada una con sus reservas y permisos dentro de su empresa.
+La base marketplace nueva introduce `customer_profiles`, `company_customers`, `company_profiles`, tarifas opcionales por profesional/servicio y bloqueos de disponibilidad por profesional.
 
 ## Frontend moderno principal
 

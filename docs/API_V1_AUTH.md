@@ -142,12 +142,12 @@ Esto crea una cuenta cliente dentro de la empresa indicada:
 - access token
 - refresh token
 
-Modelo actual:
+Modelo marketplace objetivo:
 
-- el cliente se registra por empresa.
-- el mismo email puede existir en empresas distintas.
-- el login posterior usa `company_slug + email + password`.
-- el portal cliente usa el JWT para resolver `users.id -> customers.user_id`; no acepta `customer_id` desde frontend.
+- el cliente tiene cuenta global.
+- el cliente puede inscribirse en multiples empresas mediante `company_customers`.
+- el portal cliente debe resolver `users.id -> customer_profiles.user_id`; no acepta `customer_id` desde frontend.
+- la implementacion actual de `register-customer.php` queda como paso transicional mientras se migra el login a cuenta global sin `company_slug`.
 
 ## Claims JWT
 

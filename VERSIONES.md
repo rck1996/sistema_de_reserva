@@ -50,6 +50,7 @@ Incluye:
 - README ampliado con modelo de negocio SaaS, roles y reglas multiempresa
 - registro de cliente API v1 por empresa con `users.role=customer`, `customers.user_id` y JWT automatico
 - portal cliente SaaS inicial con `GET /customer/me` y `GET /customer/bookings` resolviendo identidad desde JWT
+- inicio de adaptacion a marketplace: perfiles globales de cliente, membresias empresa-cliente, perfiles publicos de empresa, tarifas por profesional/servicio y bloqueos de disponibilidad
 
 ## En desarrollo - 2026-05-14
 
