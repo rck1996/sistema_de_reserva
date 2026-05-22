@@ -65,6 +65,54 @@ final class UserRepository
         }
     }
 
+    public function createCompanyCustomer(string $companySlug, string $email, string $password, string $firstName, string $lastName, string $phone = '', string $notes = ''): array
+    {
+        $this->pdo->beginTransaction();
+        try {
+            $company = $this->findCompanyBySlug($companySlug);
+            if ($company === null) {
+                throw new InvalidArgumentException('Empresa no encontrada.');
+            }
+
+            $statement = $this->pdo->prepare(
+                'INSERT INTO users (company_id, email, username, password_hash, role)
+                 VALUES (:company_id, :email, :username, :password_hash, :role)
+                 RETURNING *'
+            );
+            $statement->execute(array(
+                ':company_id' => $company['id'],
+                ':email' => $email,
+                ':username' => null,
+                ':password_hash' => password_hash($password, PASSWORD_DEFAULT),
+                ':role' => 'customer',
+            ));
+            $user = $statement->fetch();
+
+            $customerStatement = $this->pdo->prepare(
+                'INSERT INTO customers (company_id, user_id, first_name, last_name, email, phone, notes, is_active)
+                 VALUES (:company_id, :user_id, :first_name, :last_name, :email, :phone, :notes, TRUE)'
+            );
+            $customerStatement->execute(array(
+                ':company_id' => $company['id'],
+                ':user_id' => $user['id'],
+                ':first_name' => $firstName,
+                ':last_name' => $lastName,
+                ':email' => $email,
+                ':phone' => $phone,
+                ':notes' => $notes,
+            ));
+
+            $this->pdo->commit();
+
+            return array_merge($user, array('company_slug' => $company['slug'], 'company_name' => $company['name']));
+        } catch (Throwable $exception) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $exception;
+        }
+    }
+
     private function createCompany(string $name, string $slug): array
     {
         $statement = $this->pdo->prepare(
@@ -75,5 +123,14 @@ final class UserRepository
         $statement->execute(array(':name' => $name, ':slug' => $slug));
 
         return $statement->fetch();
+    }
+
+    private function findCompanyBySlug(string $slug): ?array
+    {
+        $statement = $this->pdo->prepare('SELECT * FROM companies WHERE slug = :slug LIMIT 1');
+        $statement->execute(array(':slug' => $slug));
+        $company = $statement->fetch();
+
+        return $company === false ? null : $company;
     }
 }

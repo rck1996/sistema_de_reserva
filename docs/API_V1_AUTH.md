@@ -116,6 +116,38 @@ Esto crea:
 - access token
 - refresh token
 
+## Register Cliente
+
+```http
+POST /api/v1/auth/register-customer.php
+Content-Type: application/json
+```
+
+```json
+{
+  "company_slug": "demo",
+  "first_name": "Camila",
+  "last_name": "Rojas",
+  "email": "camila@demo.local",
+  "phone": "+56911111111",
+  "password": "Cliente123"
+}
+```
+
+Esto crea una cuenta cliente dentro de la empresa indicada:
+
+- `users.role = customer`
+- `customers.user_id = users.id`
+- `customers.company_id = companies.id`
+- access token
+- refresh token
+
+Modelo actual:
+
+- el cliente se registra por empresa.
+- el mismo email puede existir en empresas distintas.
+- el login posterior usa `company_slug + email + password`.
+
 ## Claims JWT
 
 ```json

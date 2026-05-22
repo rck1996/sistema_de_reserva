@@ -48,6 +48,7 @@ Incluye:
 - pantalla `/saas-customers` con búsqueda, listado responsive y creación de clientes sobre API v1 PostgreSQL
 - actualizacion de clientes API v1 con permisos SaaS por rol y aislamiento tenant desde JWT
 - README ampliado con modelo de negocio SaaS, roles y reglas multiempresa
+- registro de cliente API v1 por empresa con `users.role=customer`, `customers.user_id` y JWT automatico
 
 ## En desarrollo - 2026-05-14
 

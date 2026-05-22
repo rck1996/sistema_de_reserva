@@ -47,6 +47,23 @@ Regla de negocio clave:
 - ninguna query productiva debe aceptar `company_id` desde el frontend.
 - toda lectura/escritura tenant debe filtrar por `company_id` obtenido desde el JWT.
 
+Modelo de cuenta cliente actual:
+
+- el cliente se registra dentro de una empresa especifica.
+- el login del cliente usa `company_slug + email + password`.
+- el mismo email puede existir en distintas empresas porque la restriccion es `UNIQUE(company_id, email)`.
+- una cuenta cliente de una empresa no comparte historial ni reservas con otra empresa.
+- este modelo privilegia SaaS B2B aislado por negocio antes que marketplace global.
+
+Ejemplo:
+
+```text
+demo + camila@gmail.com
+centro-kine + camila@gmail.com
+```
+
+Son dos cuentas distintas, cada una con sus reservas y permisos dentro de su empresa.
+
 ## Frontend moderno principal
 
 La carpeta `frontend/` contiene la nueva experiencia principal del producto. Las pantallas publicas, cliente, profesional y administracion se revisan desde React:

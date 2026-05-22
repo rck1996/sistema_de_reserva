@@ -62,6 +62,29 @@ export function loginSaas(input: { companySlug: string; email: string; password:
   });
 }
 
+export function registerSaasCustomer(input: {
+  companySlug: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  phone?: string;
+  notes?: string;
+}) {
+  return apiV1<SaasAuthResponse>('/auth/register-customer.php', {
+    method: 'POST',
+    body: JSON.stringify({
+      company_slug: input.companySlug,
+      first_name: input.firstName,
+      last_name: input.lastName,
+      email: input.email,
+      password: input.password,
+      phone: input.phone ?? '',
+      notes: input.notes ?? '',
+    }),
+  });
+}
+
 export function refreshSaas(refreshToken: string) {
   return apiV1<SaasAuthResponse>('/auth/refresh.php', {
     method: 'POST',

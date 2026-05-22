@@ -35,6 +35,13 @@ final class AuthService
         return $this->issueTokenPair($user);
     }
 
+    public function registerCustomer(string $companySlug, string $email, string $password, string $firstName, string $lastName, string $phone = '', string $notes = ''): array
+    {
+        $user = $this->users->createCompanyCustomer($companySlug, $email, $password, $firstName, $lastName, $phone, $notes);
+
+        return $this->issueTokenPair($user);
+    }
+
     public function refresh(string $refreshToken): array
     {
         $record = $this->refreshTokens->findValid($refreshToken);

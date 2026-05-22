@@ -9,7 +9,7 @@ import { BookingDrawer } from '../features/booking/booking-drawer';
 import { useSaasAuthStore } from '../features/auth/saas-auth-store';
 import { Metrics } from '../features/dashboard/metrics';
 import { AppShell } from '../layouts/app-shell';
-import { createSaasDemoBooking, getSaasDashboard, getSaasMe, listSaasBookings, listSaasCustomers, listSaasDisciplines, listSaasProfessionals, listSaasServices, loginSaas, logoutSaas, refreshSaas } from '../services/api-v1-client';
+import { createSaasDemoBooking, getSaasDashboard, getSaasMe, listSaasBookings, listSaasCustomers, listSaasDisciplines, listSaasProfessionals, listSaasServices, loginSaas, logoutSaas, refreshSaas, registerSaasCustomer } from '../services/api-v1-client';
 import { createCustomerBooking, getAdminDashboard, getAdminManagement, getAuthState, getCustomerDashboard, getPublicData, getStaffDashboard, postAuth, saveAdminManagement } from '../services/portal-api';
 import { useBookingStore } from '../store/booking-store';
 import type { Booking, Professional, Service } from '../types/booking';
@@ -64,6 +64,7 @@ function Portal() {
   if (route === 'saas-dashboard') return <SaasDashboardPage onNavigate={navigate} />;
   if (route === 'saas-calendar') return <SaasCalendarPage onNavigate={navigate} />;
   if (route === 'saas-customers') return <SaasCustomersPage onNavigate={navigate} />;
+  if (route === 'saas-customer-register') return <SaasCustomerRegisterPage onNavigate={navigate} />;
   if (route === 'login') return <LoginPage csrfToken={csrfToken} onNavigate={navigate} />;
   return <HomePage csrfToken={csrfToken} onNavigate={navigate} session={auth.data?.session} />;
 }
@@ -259,6 +260,7 @@ function SaasLoginPage({ onNavigate }: { onNavigate: (route: string) => void }) 
             <Button variant="primary" onClick={() => onNavigate('saas-dashboard')} disabled={!accessToken}>Abrir dashboard SaaS v1</Button>
             <Button variant="primary" onClick={() => onNavigate('saas-calendar')} disabled={!accessToken}>Abrir calendario SaaS v1</Button>
             <Button variant="primary" onClick={() => onNavigate('saas-customers')} disabled={!accessToken}>Abrir clientes SaaS v1</Button>
+            <Button onClick={() => onNavigate('saas-customer-register')}>Registro cliente SaaS</Button>
           </div>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <Button onClick={() => disciplines.mutate()} disabled={!accessToken || disciplines.isPending}>Listar disciplinas tenant</Button>
@@ -278,6 +280,63 @@ function SaasLoginPage({ onNavigate }: { onNavigate: (route: string) => void }) 
             <p>Access token: {accessToken ? `${accessToken.slice(0, 24)}...` : '-'}</p>
           </div>
           {resourcePreview ? <pre className="mt-5 max-h-72 overflow-auto rounded-[1.5rem] border border-white/10 bg-black/30 p-4 text-xs text-slate-300">{resourcePreview}</pre> : null}
+        </Card>
+      </div>
+    </PublicFrame>
+  );
+}
+
+function SaasCustomerRegisterPage({ onNavigate }: { onNavigate: (route: string) => void }) {
+  const { setSession } = useSaasAuthStore();
+  const register = useMutation({
+    mutationFn: (form: FormData) => registerSaasCustomer({
+      companySlug: String(form.get('company_slug') ?? 'demo'),
+      firstName: String(form.get('first_name') ?? ''),
+      lastName: String(form.get('last_name') ?? ''),
+      email: String(form.get('email') ?? '').toLowerCase(),
+      password: String(form.get('password') ?? ''),
+      phone: String(form.get('phone') ?? ''),
+      notes: 'Registro cliente SaaS v1',
+    }),
+    onSuccess: (payload) => {
+      setSession({ accessToken: payload.access_token, refreshToken: payload.refresh_token, user: payload.user });
+    },
+  });
+
+  return (
+    <PublicFrame onNavigate={onNavigate}>
+      <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[.9fr_1.1fr]">
+        <Card className="p-8">
+          <Badge tone="emerald">Cuenta por empresa</Badge>
+          <h1 className="mt-5 text-5xl font-semibold tracking-[-0.06em] text-white">Registro cliente SaaS v1.</h1>
+          <p className="mt-4 text-sm leading-6 text-slate-400">El cliente se inscribe dentro de una empresa especifica. El mismo correo puede registrarse en otra empresa porque el email es unico por `company_id`.</p>
+          <div className="mt-6 rounded-[1.5rem] border border-white/10 bg-white/[0.05] p-4 text-sm text-slate-300">
+            <p className="font-semibold text-white">Modelo actual</p>
+            <p className="mt-2">Empresa: demo</p>
+            <p>Login posterior: company_slug + email + password</p>
+          </div>
+        </Card>
+        <Card className="p-6">
+          <form className="space-y-4" onSubmit={(event) => submitForm(event, register.mutate, '')}>
+            <Input name="company_slug" defaultValue="demo" placeholder="empresa-slug" required />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input name="first_name" placeholder="Nombre" required />
+              <Input name="last_name" placeholder="Apellido" required />
+            </div>
+            <Input name="email" type="email" placeholder="cliente@dominio.cl" required />
+            <Input name="phone" placeholder="+56900000000" />
+            <Input name="password" type="password" placeholder="Clave minimo 8 caracteres" required minLength={8} />
+            {register.error ? <p className="rounded-2xl border border-rose-300/20 bg-rose-400/10 p-3 text-sm text-rose-100">{register.error.message}</p> : null}
+            {register.data ? (
+              <div className="rounded-2xl border border-emerald-300/20 bg-emerald-400/10 p-3 text-sm text-emerald-100">
+                Cliente registrado y autenticado como {register.data.user.email} / {register.data.user.role}.
+              </div>
+            ) : null}
+            <div className="flex flex-wrap gap-3">
+              <Button variant="primary" type="submit" disabled={register.isPending}>{register.isPending ? 'Registrando...' : 'Registrar cliente'}</Button>
+              <Button type="button" onClick={() => onNavigate('saas-login')}>Volver a login API</Button>
+            </div>
+          </form>
         </Card>
       </div>
     </PublicFrame>
