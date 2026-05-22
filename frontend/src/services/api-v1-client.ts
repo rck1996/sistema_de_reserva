@@ -151,6 +151,13 @@ export type SaasCustomer = {
   is_active: boolean;
 };
 
+export type SaasCustomerProfile = SaasCustomer & {
+  user_id: string;
+  company_slug: string;
+  company_name: string;
+  created_at: string;
+};
+
 export type SaasBooking = {
   id: string;
   company_id: string;
@@ -265,6 +272,14 @@ export function rescheduleSaasBooking(accessToken: string, input: { id: string; 
 
 export function getSaasDashboard(accessToken: string) {
   return apiV1<{ ok: true; data: SaasDashboard }>('/dashboard.php', {}, accessToken);
+}
+
+export function getSaasCustomerMe(accessToken: string) {
+  return apiV1<{ ok: true; data: SaasCustomerProfile }>('/customer/me.php', {}, accessToken);
+}
+
+export function listSaasCustomerBookings(accessToken: string) {
+  return apiV1<{ ok: true; data: SaasBooking[] }>('/customer/bookings.php', {}, accessToken);
 }
 
 export async function createSaasDemoBooking(accessToken: string) {

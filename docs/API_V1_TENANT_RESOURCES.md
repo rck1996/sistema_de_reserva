@@ -237,6 +237,34 @@ Roles permitidos:
 - `admin_empresa`
 - `staff`
 
+## Portal Cliente
+
+Estos endpoints requieren JWT con rol `customer`.
+
+```http
+GET /api/v1/customer/me.php
+Authorization: Bearer ACCESS_TOKEN
+```
+
+Retorna el perfil del cliente autenticado resolviendo:
+
+```text
+JWT user_id -> customers.user_id
+```
+
+```http
+GET /api/v1/customer/bookings.php
+Authorization: Bearer ACCESS_TOKEN
+```
+
+Lista solo las reservas del cliente autenticado dentro de la empresa del JWT.
+
+Reglas:
+
+- No se acepta `customer_id` desde frontend.
+- El cliente no puede listar otros clientes.
+- El cliente no puede ver reservas de otro tenant.
+
 ## Prueba Rapida En React
 
 1. Levantar backend y frontend con `.\start-frontend.cmd`.
@@ -247,6 +275,7 @@ Roles permitidos:
 6. Usar `Abrir calendario SaaS v1` para revisar reservas en FullCalendar, filtros, drawer y acciones de estado.
 7. Usar `Abrir clientes SaaS v1` para revisar búsqueda y creación de clientes sobre PostgreSQL.
 8. Usar `Registro cliente SaaS` para probar cuenta cliente por empresa con JWT.
+9. Usar `Portal cliente SaaS` para revisar perfil y reservas propias.
 
 ## Profesionales
 

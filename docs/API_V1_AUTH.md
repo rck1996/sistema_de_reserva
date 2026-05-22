@@ -147,6 +147,7 @@ Modelo actual:
 - el cliente se registra por empresa.
 - el mismo email puede existir en empresas distintas.
 - el login posterior usa `company_slug + email + password`.
+- el portal cliente usa el JWT para resolver `users.id -> customers.user_id`; no acepta `customer_id` desde frontend.
 
 ## Claims JWT
 

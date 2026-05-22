@@ -17,6 +17,7 @@ import type { Booking, Professional, Service } from '../types/booking';
 const queryClient = new QueryClient();
 const BookingCalendar = lazy(() => import('../features/calendar/booking-calendar').then((module) => ({ default: module.BookingCalendar })));
 const SaasCalendar = lazy(() => import('../features/calendar/saas-calendar').then((module) => ({ default: module.SaasCalendar })));
+const SaasCustomerPortal = lazy(() => import('../features/customer/saas-customer-portal').then((module) => ({ default: module.SaasCustomerPortal })));
 const SaasCustomers = lazy(() => import('../features/customers/saas-customers').then((module) => ({ default: module.SaasCustomers })));
 
 export function App() {
@@ -63,6 +64,7 @@ function Portal() {
   if (route === 'saas-login') return <SaasLoginPage onNavigate={navigate} />;
   if (route === 'saas-dashboard') return <SaasDashboardPage onNavigate={navigate} />;
   if (route === 'saas-calendar') return <SaasCalendarPage onNavigate={navigate} />;
+  if (route === 'saas-customer') return <SaasCustomerPage onNavigate={navigate} />;
   if (route === 'saas-customers') return <SaasCustomersPage onNavigate={navigate} />;
   if (route === 'saas-customer-register') return <SaasCustomerRegisterPage onNavigate={navigate} />;
   if (route === 'login') return <LoginPage csrfToken={csrfToken} onNavigate={navigate} />;
@@ -260,6 +262,7 @@ function SaasLoginPage({ onNavigate }: { onNavigate: (route: string) => void }) 
             <Button variant="primary" onClick={() => onNavigate('saas-dashboard')} disabled={!accessToken}>Abrir dashboard SaaS v1</Button>
             <Button variant="primary" onClick={() => onNavigate('saas-calendar')} disabled={!accessToken}>Abrir calendario SaaS v1</Button>
             <Button variant="primary" onClick={() => onNavigate('saas-customers')} disabled={!accessToken}>Abrir clientes SaaS v1</Button>
+            <Button variant="primary" onClick={() => onNavigate('saas-customer')} disabled={!accessToken || user?.role !== 'customer'}>Portal cliente SaaS</Button>
             <Button onClick={() => onNavigate('saas-customer-register')}>Registro cliente SaaS</Button>
           </div>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -334,10 +337,54 @@ function SaasCustomerRegisterPage({ onNavigate }: { onNavigate: (route: string) 
             ) : null}
             <div className="flex flex-wrap gap-3">
               <Button variant="primary" type="submit" disabled={register.isPending}>{register.isPending ? 'Registrando...' : 'Registrar cliente'}</Button>
+              <Button type="button" onClick={() => onNavigate('saas-customer')} disabled={!register.data}>Abrir portal cliente</Button>
               <Button type="button" onClick={() => onNavigate('saas-login')}>Volver a login API</Button>
             </div>
           </form>
         </Card>
+      </div>
+    </PublicFrame>
+  );
+}
+
+function SaasCustomerPage({ onNavigate }: { onNavigate: (route: string) => void }) {
+  const { accessToken, user, hydrate, clearSession } = useSaasAuthStore();
+  useEffect(() => hydrate(), [hydrate]);
+
+  if (!accessToken || user?.role !== 'customer') {
+    return (
+      <PublicFrame onNavigate={onNavigate}>
+        <Card className="mx-auto max-w-2xl p-8">
+          <Badge tone="rose">Cuenta cliente requerida</Badge>
+          <h1 className="mt-4 text-4xl font-semibold tracking-[-0.05em] text-white">Entra o registrate como cliente para ver tu portal.</h1>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Button variant="primary" onClick={() => onNavigate('saas-customer-register')}>Registrar cliente</Button>
+            <Button onClick={() => onNavigate('saas-login')}>Login API v1</Button>
+          </div>
+        </Card>
+      </PublicFrame>
+    );
+  }
+
+  return (
+    <PublicFrame onNavigate={onNavigate}>
+      <div className="mx-auto max-w-7xl space-y-6">
+        <Card className="p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <Badge tone="emerald">Portal cliente</Badge>
+              <h1 className="mt-3 text-5xl font-semibold tracking-[-0.06em] text-white">Tu cuenta en {user.company_name}.</h1>
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">Sesion cliente por empresa. El historial se mantiene aislado por tenant.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={() => onNavigate('saas-login')}>Pruebas API</Button>
+              <Button variant="danger" onClick={() => { clearSession(); onNavigate('saas-login'); }}>Cerrar JWT</Button>
+            </div>
+          </div>
+        </Card>
+        <Suspense fallback={<CalendarSkeleton />}>
+          <SaasCustomerPortal accessToken={accessToken} />
+        </Suspense>
       </div>
     </PublicFrame>
   );

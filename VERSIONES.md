@@ -49,6 +49,7 @@ Incluye:
 - actualizacion de clientes API v1 con permisos SaaS por rol y aislamiento tenant desde JWT
 - README ampliado con modelo de negocio SaaS, roles y reglas multiempresa
 - registro de cliente API v1 por empresa con `users.role=customer`, `customers.user_id` y JWT automatico
+- portal cliente SaaS inicial con `GET /customer/me` y `GET /customer/bookings` resolviendo identidad desde JWT
 
 ## En desarrollo - 2026-05-14
 
