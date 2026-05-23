@@ -1,21 +1,25 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Building2, CheckCircle2, MapPin, Search, Sparkles, UserRound } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { useSaasAuthStore } from '../auth/saas-auth-store';
-import { enrollMarketplaceCompany, getMarketplaceCompany, listMarketplaceCompanies, type MarketplaceCompany } from '../../services/api-v1-client';
+import { createMarketplaceBooking, enrollMarketplaceCompany, getMarketplaceCompany, listMarketplaceCompanies, type MarketplaceCompany } from '../../services/api-v1-client';
 
 type MarketplaceHomeProps = {
   onNavigate: (route: string) => void;
 };
 
 export function MarketplaceHome({ onNavigate }: MarketplaceHomeProps) {
-  const { accessToken, user } = useSaasAuthStore();
+  const { accessToken, user, hydrate } = useSaasAuthStore();
   const [search, setSearch] = useState('');
   const [selectedSlug, setSelectedSlug] = useState('demo');
+  const [selectedDisciplineId, setSelectedDisciplineId] = useState('');
+  const [selectedServiceId, setSelectedServiceId] = useState('');
+  const [selectedProfessionalId, setSelectedProfessionalId] = useState('');
+  const [startsAt, setStartsAt] = useState('');
   const companiesQuery = useQuery({ queryKey: ['marketplace-companies'], queryFn: listMarketplaceCompanies });
   const detailQuery = useQuery({
     queryKey: ['marketplace-company', selectedSlug],
@@ -23,6 +27,16 @@ export function MarketplaceHome({ onNavigate }: MarketplaceHomeProps) {
     enabled: Boolean(selectedSlug),
   });
   const enroll = useMutation({ mutationFn: (slug: string) => enrollMarketplaceCompany(accessToken, slug) });
+  const booking = useMutation({
+    mutationFn: () => createMarketplaceBooking(accessToken, {
+      company_slug: selectedSlug,
+      service_id: selectedServiceId,
+      professional_id: selectedProfessionalId,
+      starts_at: startsAt,
+      notes: 'Reserva creada desde marketplace.',
+    }),
+  });
+  useEffect(() => hydrate(), [hydrate]);
   const companies = companiesQuery.data?.data ?? [];
   const filteredCompanies = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -36,6 +50,29 @@ export function MarketplaceHome({ onNavigate }: MarketplaceHomeProps) {
     ].join(' ').toLowerCase().includes(term));
   }, [companies, search]);
   const selectedCompany = detailQuery.data?.data;
+  const services = selectedCompany?.services ?? [];
+  const disciplines = selectedCompany?.disciplines ?? [];
+  const filteredServices = selectedDisciplineId ? services.filter((service) => service.discipline_id === selectedDisciplineId) : services;
+  const eligibleProfessionals = (selectedCompany?.professionals ?? []).filter((professional) =>
+    !selectedServiceId || professional.services.some((service) => ((service as { service_id?: string; id?: string }).service_id ?? (service as { id?: string }).id) === selectedServiceId),
+  );
+  const canBook = Boolean(accessToken && user?.role === 'customer' && selectedServiceId && selectedProfessionalId && startsAt);
+
+  useEffect(() => {
+    setSelectedDisciplineId('');
+    setSelectedServiceId('');
+    setSelectedProfessionalId('');
+    setStartsAt('');
+  }, [selectedSlug]);
+
+  useEffect(() => {
+    setSelectedServiceId('');
+    setSelectedProfessionalId('');
+  }, [selectedDisciplineId]);
+
+  useEffect(() => {
+    setSelectedProfessionalId('');
+  }, [selectedServiceId]);
 
   return (
     <div className="space-y-6">
@@ -117,6 +154,24 @@ export function MarketplaceHome({ onNavigate }: MarketplaceHomeProps) {
                       <CatalogBlock title="Servicios" items={selectedCompany.services.map((item) => ({ id: item.id, title: item.name, subtitle: `$${Number(item.price).toLocaleString('es-CL')} · ${item.duration_minutes} min` }))} />
                       <CatalogBlock title="Profesionales" items={selectedCompany.professionals.map((item) => ({ id: item.id, title: item.name, subtitle: `${item.services.length} servicios` }))} />
                     </div>
+                    <BookingPanel
+                      accessToken={accessToken}
+                      booking={booking}
+                      canBook={canBook}
+                      disciplines={disciplines}
+                      eligibleProfessionals={eligibleProfessionals}
+                      filteredServices={filteredServices}
+                      onNavigate={onNavigate}
+                      selectedDisciplineId={selectedDisciplineId}
+                      selectedProfessionalId={selectedProfessionalId}
+                      selectedServiceId={selectedServiceId}
+                      setSelectedDisciplineId={setSelectedDisciplineId}
+                      setSelectedProfessionalId={setSelectedProfessionalId}
+                      setSelectedServiceId={setSelectedServiceId}
+                      setStartsAt={setStartsAt}
+                      startsAt={startsAt}
+                      userRole={user?.role}
+                    />
                   </CardContent>
                 </>
               ) : null}
@@ -144,6 +199,82 @@ function CompanyCard({ company, active, onSelect }: { company: MarketplaceCompan
       </div>
       <p className="mt-3 flex items-center gap-2 text-xs text-slate-500"><MapPin size={13} /> {company.city || 'Sin ciudad'}</p>
     </button>
+  );
+}
+
+function BookingPanel({
+  accessToken,
+  booking,
+  canBook,
+  disciplines,
+  eligibleProfessionals,
+  filteredServices,
+  onNavigate,
+  selectedDisciplineId,
+  selectedProfessionalId,
+  selectedServiceId,
+  setSelectedDisciplineId,
+  setSelectedProfessionalId,
+  setSelectedServiceId,
+  setStartsAt,
+  startsAt,
+  userRole,
+}: {
+  accessToken: string;
+  booking: {
+    data?: unknown;
+    error: unknown;
+    isPending: boolean;
+    mutate: (value?: void) => void;
+  };
+  canBook: boolean;
+  disciplines: Array<{ id: string; name: string }>;
+  eligibleProfessionals: Array<{ id: string; name: string }>;
+  filteredServices: Array<{ id: string; name: string; price: string; duration_minutes: number }>;
+  onNavigate: (route: string) => void;
+  selectedDisciplineId: string;
+  selectedProfessionalId: string;
+  selectedServiceId: string;
+  setSelectedDisciplineId: (value: string) => void;
+  setSelectedProfessionalId: (value: string) => void;
+  setSelectedServiceId: (value: string) => void;
+  setStartsAt: (value: string) => void;
+  startsAt: string;
+  userRole?: string;
+}) {
+  return (
+    <div className="mt-6 rounded-[1.5rem] border border-white/10 bg-white/[0.045] p-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold text-white">Reservar en esta empresa</p>
+          <p className="mt-1 text-xs text-slate-500">Primero inscríbete. Luego elige servicio, profesional y horario.</p>
+        </div>
+        <Badge tone={accessToken && userRole === 'customer' ? 'emerald' : 'amber'}>{accessToken && userRole === 'customer' ? 'Cliente conectado' : 'Login cliente requerido'}</Badge>
+      </div>
+      <div className="mt-4 grid gap-3 lg:grid-cols-2">
+        <select className="rounded-2xl border border-white/10 bg-zinc-950/80 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/50" value={selectedDisciplineId} onChange={(event) => setSelectedDisciplineId(event.target.value)}>
+          <option value="">Todas las disciplinas</option>
+          {disciplines.map((discipline) => <option key={discipline.id} value={discipline.id}>{discipline.name}</option>)}
+        </select>
+        <select className="rounded-2xl border border-white/10 bg-zinc-950/80 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/50" value={selectedServiceId} onChange={(event) => setSelectedServiceId(event.target.value)}>
+          <option value="">Seleccionar servicio</option>
+          {filteredServices.map((service) => <option key={service.id} value={service.id}>{service.name} · ${Number(service.price).toLocaleString('es-CL')} · {service.duration_minutes} min</option>)}
+        </select>
+        <select className="rounded-2xl border border-white/10 bg-zinc-950/80 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/50" value={selectedProfessionalId} onChange={(event) => setSelectedProfessionalId(event.target.value)} disabled={!selectedServiceId}>
+          <option value="">Seleccionar profesional</option>
+          {eligibleProfessionals.map((professional) => <option key={professional.id} value={professional.id}>{professional.name}</option>)}
+        </select>
+        <Input type="datetime-local" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} />
+      </div>
+      <div className="mt-4 flex flex-wrap gap-3">
+        <Button variant="primary" disabled={!canBook || booking.isPending} onClick={() => booking.mutate(undefined)}>
+          {booking.isPending ? 'Reservando...' : 'Reservar horario'}
+        </Button>
+        {!accessToken || userRole !== 'customer' ? <Button onClick={() => onNavigate('customer-login')}>Entrar como cliente</Button> : null}
+      </div>
+      {booking.data ? <p className="mt-3 rounded-2xl border border-emerald-300/20 bg-emerald-400/10 p-3 text-sm text-emerald-100">Reserva creada en estado pendiente. Puedes verla en tu agenda personal.</p> : null}
+      {booking.error ? <p className="mt-3 rounded-2xl border border-rose-300/20 bg-rose-400/10 p-3 text-sm text-rose-100">{(booking.error as Error).message}</p> : null}
+    </div>
   );
 }
 

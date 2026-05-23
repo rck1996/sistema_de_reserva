@@ -223,6 +223,35 @@ export type StaffWorkday = {
   bookings: Array<{ id: string; starts_at: string; ends_at: string; status: SaasBooking['status']; notes: string; customer_first_name: string; customer_last_name: string; service_name: string }>;
 };
 
+export type SuperAdminOverview = {
+  metrics: {
+    companies: string;
+    active_users: string;
+    customers: string;
+    professionals: string;
+    services: string;
+    bookings: string;
+    memberships: string;
+  };
+  companies: Array<MarketplaceCompany & {
+    is_public: boolean;
+    users_count: string;
+    professionals_count: string;
+    services_count: string;
+    bookings_count: string;
+  }>;
+  recent_bookings: Array<{
+    id: string;
+    starts_at: string;
+    status: SaasBooking['status'];
+    company_name: string;
+    service_name: string;
+    professional_name: string;
+    customer_first_name: string;
+    customer_last_name: string;
+  }>;
+};
+
 export type SaasDashboard = {
   metrics: {
     total_bookings: string;
@@ -351,6 +380,29 @@ export function createMarketplaceBooking(accessToken: string, input: {
 }) {
   return apiV1<{ ok: true; data: SaasBooking }>('/marketplace/bookings.php', {
     method: 'POST',
+    body: JSON.stringify(input),
+  }, accessToken);
+}
+
+export function getSuperAdminOverview(accessToken: string) {
+  return apiV1<{ ok: true; data: SuperAdminOverview }>('/superadmin/overview.php', {}, accessToken);
+}
+
+export function updateSuperAdminCompany(accessToken: string, input: {
+  id: string;
+  name: string;
+  display_name: string;
+  tagline?: string;
+  description?: string;
+  city?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  primary_color?: string;
+  accent_color?: string;
+  is_public: boolean;
+}) {
+  return apiV1<{ ok: true; data: SuperAdminOverview['companies'][number] }>('/superadmin/overview.php', {
+    method: 'PATCH',
     body: JSON.stringify(input),
   }, accessToken);
 }

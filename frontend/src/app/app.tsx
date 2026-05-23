@@ -9,7 +9,7 @@ import { BookingDrawer } from '../features/booking/booking-drawer';
 import { useSaasAuthStore } from '../features/auth/saas-auth-store';
 import { Metrics } from '../features/dashboard/metrics';
 import { AppShell } from '../layouts/app-shell';
-import { createSaasDemoBooking, createStaffTimeBlock, getSaasDashboard, getSaasMe, getStaffWorkday, listMarketplaceCompanies, listSaasBookings, listSaasCustomers, listSaasDisciplines, listSaasProfessionals, listSaasServices, loginSaas, loginSaasCustomer, loginSaasSuperAdmin, logoutSaas, refreshSaas, registerSaasCustomer, type MarketplaceCompany } from '../services/api-v1-client';
+import { createSaasDemoBooking, createStaffTimeBlock, getSaasDashboard, getSaasMe, getStaffWorkday, getSuperAdminOverview, listMarketplaceCompanies, listSaasBookings, listSaasCustomers, listSaasDisciplines, listSaasProfessionals, listSaasServices, loginSaas, loginSaasCustomer, loginSaasSuperAdmin, logoutSaas, refreshSaas, registerSaasCustomer, updateSuperAdminCompany, type MarketplaceCompany } from '../services/api-v1-client';
 import { createCustomerBooking, getAdminDashboard, getAdminManagement, getAuthState, getCustomerDashboard, getPublicData, getStaffDashboard, postAuth, saveAdminManagement } from '../services/portal-api';
 import { useBookingStore } from '../store/booking-store';
 import type { Booking, Professional, Service } from '../types/booking';
@@ -548,12 +548,43 @@ function StaffWorkspacePage({ onNavigate }: { onNavigate: (route: string) => voi
 
 function SuperAdminPage({ onNavigate }: { onNavigate: (route: string) => void }) {
   const { accessToken, user, hydrate, clearSession } = useSaasAuthStore();
+  const [selectedCompanyId, setSelectedCompanyId] = useState('');
+  const queryClient = useQueryClient();
   useEffect(() => hydrate(), [hydrate]);
-  const companies = useQuery({ queryKey: ['marketplace-companies-super', accessToken], queryFn: listMarketplaceCompanies, enabled: Boolean(accessToken) && user?.role === 'super_admin' });
+  const overview = useQuery({ queryKey: ['superadmin-overview', accessToken], queryFn: () => getSuperAdminOverview(accessToken), enabled: Boolean(accessToken) && user?.role === 'super_admin' });
+  const saveCompany = useMutation({
+    mutationFn: (form: FormData) => updateSuperAdminCompany(accessToken, {
+      id: String(form.get('id') ?? ''),
+      name: String(form.get('name') ?? ''),
+      display_name: String(form.get('display_name') ?? ''),
+      tagline: String(form.get('tagline') ?? ''),
+      description: String(form.get('description') ?? ''),
+      city: String(form.get('city') ?? ''),
+      contact_email: String(form.get('contact_email') ?? ''),
+      contact_phone: String(form.get('contact_phone') ?? ''),
+      primary_color: String(form.get('primary_color') ?? '#22d3ee'),
+      accent_color: String(form.get('accent_color') ?? '#8b5cf6'),
+      is_public: String(form.get('is_public') ?? 'true') === 'true',
+    }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['superadmin-overview'] });
+      await queryClient.invalidateQueries({ queryKey: ['marketplace-companies'] });
+      await queryClient.invalidateQueries({ queryKey: ['home-marketplace-companies'] });
+    },
+  });
 
   if (!accessToken || user?.role !== 'super_admin') {
     return <LoginRequired role="superadmin" onNavigate={() => onNavigate('superadmin-login')} />;
   }
+
+  const data = overview.data?.data;
+  const selectedCompany = data?.companies.find((company) => company.id === selectedCompanyId) ?? data?.companies[0];
+  const metricCards: Array<[string, string, 'cyan' | 'emerald' | 'violet' | 'amber']> = [
+    ['Empresas', data?.metrics.companies ?? '0', 'cyan' as const],
+    ['Usuarios activos', data?.metrics.active_users ?? '0', 'emerald' as const],
+    ['Clientes', data?.metrics.customers ?? '0', 'violet' as const],
+    ['Reservas', data?.metrics.bookings ?? '0', 'amber' as const],
+  ];
 
   return (
     <PublicFrame onNavigate={onNavigate}>
@@ -561,14 +592,85 @@ function SuperAdminPage({ onNavigate }: { onNavigate: (route: string) => void })
         <Card className="p-8">
           <Badge tone="rose">Superadmin oculto</Badge>
           <h1 className="mt-4 text-5xl font-semibold tracking-[-0.06em] text-white">Control global Sistema Reserva.</h1>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">Vista inicial del propietario. Desde aqui se consolidaran empresas, soporte, auditoria, planes, metricas globales y salud de plataforma.</p>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">Métricas globales, empresas, edición de perfiles públicos y actividad reciente de la plataforma.</p>
           <Button className="mt-5" variant="danger" onClick={() => { clearSession(); onNavigate('home'); }}>Cerrar sesion</Button>
         </Card>
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card className="p-5"><Badge tone="cyan">Empresas publicas</Badge><p className="mt-4 text-4xl font-semibold text-white">{companies.data?.data.length ?? 0}</p></Card>
-          <Card className="p-5"><Badge tone="emerald">PostgreSQL</Badge><p className="mt-4 text-2xl font-semibold text-white">API v1 activa</p></Card>
-          <Card className="p-5"><Badge tone="violet">Modelo</Badge><p className="mt-4 text-2xl font-semibold text-white">Marketplace SaaS</p></Card>
-        </div>
+        {overview.isLoading ? <CalendarSkeleton /> : null}
+        {overview.isError ? <InlineError message={overview.error.message} /> : null}
+        {data ? (
+          <>
+            <div className="grid gap-4 md:grid-cols-4">
+              {metricCards.map(([label, value, tone]) => (
+                <Card key={label} className="p-5"><Badge tone={tone}>{label}</Badge><p className="mt-4 text-4xl font-semibold text-white">{value}</p></Card>
+              ))}
+            </div>
+            <div className="grid gap-6 xl:grid-cols-[.95fr_1.05fr]">
+              <Card>
+                <CardHeader>
+                  <h2 className="text-2xl font-semibold text-white">Empresas</h2>
+                  <p className="mt-2 text-sm text-slate-400">Selecciona una empresa para revisar métricas y editar su perfil marketplace.</p>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {data.companies.map((company) => (
+                    <button key={company.id} className={`w-full rounded-[1.35rem] border p-4 text-left transition ${selectedCompany?.id === company.id ? 'border-cyan-300/40 bg-cyan-400/10' : 'border-white/10 bg-white/[0.04] hover:bg-white/[0.07]'}`} onClick={() => setSelectedCompanyId(company.id)}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-white">{company.display_name || company.name}</p>
+                          <p className="mt-1 text-xs text-slate-500">{company.slug} · {company.city || 'sin ciudad'}</p>
+                        </div>
+                        <Badge tone={company.is_public ? 'emerald' : 'amber'}>{company.is_public ? 'Pública' : 'Privada'}</Badge>
+                      </div>
+                      <p className="mt-3 text-xs text-slate-400">{company.services_count} servicios · {company.professionals_count} profesionales · {company.bookings_count} reservas</p>
+                    </button>
+                  ))}
+                </CardContent>
+              </Card>
+              <div className="space-y-6">
+                {selectedCompany ? (
+                  <Card>
+                    <CardHeader>
+                      <h2 className="text-2xl font-semibold text-white">Editar perfil empresa</h2>
+                      <p className="mt-2 text-sm text-slate-400">Estos datos afectan el perfil público dentro del marketplace.</p>
+                    </CardHeader>
+                    <CardContent>
+                      <form className="grid gap-3 md:grid-cols-2" onSubmit={(event) => submitForm(event, saveCompany.mutate, '')}>
+                        <input type="hidden" name="id" value={selectedCompany.id} />
+                        <Input name="name" defaultValue={selectedCompany.name} placeholder="Nombre legal/interno" required />
+                        <Input name="display_name" defaultValue={selectedCompany.display_name} placeholder="Nombre público" required />
+                        <Input name="tagline" defaultValue={selectedCompany.tagline} placeholder="Tagline" className="md:col-span-2" />
+                        <Textarea name="description" defaultValue={selectedCompany.description} placeholder="Descripción" className="md:col-span-2" />
+                        <Input name="city" defaultValue={selectedCompany.city} placeholder="Ciudad" />
+                        <Input name="contact_email" defaultValue={selectedCompany.contact_email} placeholder="Correo contacto" />
+                        <Input name="contact_phone" defaultValue={selectedCompany.contact_phone} placeholder="Teléfono" />
+                        <select name="is_public" defaultValue={String(selectedCompany.is_public)} className="rounded-2xl border border-white/10 bg-zinc-950/80 px-4 py-3 text-sm text-white">
+                          <option value="true">Publicar en marketplace</option>
+                          <option value="false">Ocultar del marketplace</option>
+                        </select>
+                        <Input name="primary_color" type="color" defaultValue={selectedCompany.primary_color || '#22d3ee'} />
+                        <Input name="accent_color" type="color" defaultValue={selectedCompany.accent_color || '#8b5cf6'} />
+                        {saveCompany.error ? <InlineError message={saveCompany.error.message} /> : null}
+                        {saveCompany.data ? <p className="rounded-2xl border border-emerald-300/20 bg-emerald-400/10 p-3 text-sm text-emerald-100 md:col-span-2">Empresa actualizada.</p> : null}
+                        <Button className="md:col-span-2" variant="primary" disabled={saveCompany.isPending}>Guardar empresa</Button>
+                      </form>
+                    </CardContent>
+                  </Card>
+                ) : null}
+                <Card>
+                  <CardHeader><h2 className="text-2xl font-semibold text-white">Actividad reciente</h2></CardHeader>
+                  <CardContent className="space-y-3">
+                    {data.recent_bookings.map((booking) => (
+                      <div key={booking.id} className="rounded-2xl bg-white/[0.04] p-4 text-sm">
+                        <p className="font-semibold text-white">{booking.company_name} · {booking.service_name}</p>
+                        <p className="mt-1 text-slate-400">{booking.customer_first_name} {booking.customer_last_name} con {booking.professional_name}</p>
+                        <p className="mt-1 text-xs text-slate-500">{new Date(booking.starts_at).toLocaleString('es-CL')} · {booking.status}</p>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </>
+        ) : null}
       </div>
     </PublicFrame>
   );

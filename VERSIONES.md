@@ -60,6 +60,8 @@ Incluye:
 - login por rol separado: cliente, profesional, empresa y superadmin oculto
 - workspace profesional con agenda por empresa y creacion de bloqueos de horario
 - reservas marketplace con validacion de inscripcion, servicio-profesional, disponibilidad, bloqueos y solape de agenda
+- marketplace cliente con sesion persistida, inscripcion y reserva directa por disciplina, servicio, profesional y fecha/hora
+- superadmin operativo con metricas globales, listado de empresas, edicion de perfil publico y actividad reciente
 
 ## En desarrollo - 2026-05-14
 

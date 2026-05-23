@@ -82,6 +82,59 @@ Paneles:
 /superadmin             control global inicial
 ```
 
+## Flujos por rol
+
+Cliente:
+
+```text
+1. Entra por /customer-login o crea cuenta en /customer-register.
+2. Abre /marketplace.
+3. Busca una empresa y revisa su perfil, disciplinas, servicios y profesionales.
+4. Se inscribe en la empresa para habilitar el uso de sus datos.
+5. Selecciona disciplina, servicio, profesional y fecha/hora.
+6. Crea la reserva desde el marketplace.
+7. Revisa su agenda global en /saas-customer.
+```
+
+La reserva valida en backend:
+
+- cliente autenticado con rol `customer`
+- empresa publica existente
+- cliente inscrito en esa empresa
+- profesional dentro de esa empresa
+- profesional asociado al servicio seleccionado
+- horario dentro de disponibilidad
+- sin bloqueo del profesional
+- sin solape con otra reserva activa
+
+Profesional:
+
+```text
+1. Entra por /staff-login con slug de empresa.
+2. Abre /staff-workspace.
+3. Revisa agenda laboral propia.
+4. Crea bloqueos, pausas, vacaciones o excepciones.
+```
+
+Admin empresa:
+
+```text
+1. Entra por /company-admin-login con slug de empresa.
+2. Revisa /saas-dashboard con metricas operativas.
+3. Gestiona calendario en /saas-calendar.
+4. Gestiona clientes inscritos en /saas-customers.
+```
+
+Superadmin:
+
+```text
+1. Entra por /superadmin-login.
+2. Revisa metricas globales de plataforma.
+3. Lista empresas, usuarios, servicios, profesionales y reservas agregadas.
+4. Edita perfiles publicos de empresas y visibilidad marketplace.
+5. Revisa actividad reciente de reservas.
+```
+
 ## Datos demo
 
 Cliente marketplace:
@@ -169,13 +222,15 @@ Implementado:
 - agenda global cliente.
 - dashboard, calendario y clientes de empresa.
 - staff workspace con agenda profesional y bloqueos.
+- superadmin operativo con metricas globales, empresas, edicion de perfil publico y actividad reciente.
+- marketplace con buscador, inscripcion y creacion de reserva desde la misma pantalla.
 - reserva marketplace con validacion de empresa, servicio, profesional, disponibilidad, bloqueos y solape.
 - webroot backend limpio en `backend/`.
 
 Pendiente:
 
 - completar CRUD visual de perfil empresa, servicios, profesionales, horarios, feriados y vacaciones.
-- mejorar calendario marketplace para elegir slots disponibles desde UI.
+- mejorar reserva marketplace con slots visuales generados automaticamente en vez de selector manual `datetime-local`.
 - eliminar componentes React muertos heredados del periodo transicional.
 - agregar tests automaticos de auth, tenant isolation, reservas y disponibilidad.
 - dockerizar frontend, backend y PostgreSQL.
