@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Activity, ArrowUpRight, CalendarDays, Clock3, History, LockKeyhole, LogOut, Settings, Sparkles, UserRound, WandSparkles } from 'lucide-react';
+import { Activity, ArrowUpRight, Building2, CalendarDays, Clock3, History, LockKeyhole, LogOut, Search, Settings, Sparkles, UserRound, WandSparkles } from 'lucide-react';
 import { FormEvent, lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
@@ -9,7 +9,7 @@ import { BookingDrawer } from '../features/booking/booking-drawer';
 import { useSaasAuthStore } from '../features/auth/saas-auth-store';
 import { Metrics } from '../features/dashboard/metrics';
 import { AppShell } from '../layouts/app-shell';
-import { createSaasDemoBooking, createStaffTimeBlock, getSaasDashboard, getSaasMe, getStaffWorkday, listMarketplaceCompanies, listSaasBookings, listSaasCustomers, listSaasDisciplines, listSaasProfessionals, listSaasServices, loginSaas, loginSaasCustomer, loginSaasSuperAdmin, logoutSaas, refreshSaas, registerSaasCustomer } from '../services/api-v1-client';
+import { createSaasDemoBooking, createStaffTimeBlock, getSaasDashboard, getSaasMe, getStaffWorkday, listMarketplaceCompanies, listSaasBookings, listSaasCustomers, listSaasDisciplines, listSaasProfessionals, listSaasServices, loginSaas, loginSaasCustomer, loginSaasSuperAdmin, logoutSaas, refreshSaas, registerSaasCustomer, type MarketplaceCompany } from '../services/api-v1-client';
 import { createCustomerBooking, getAdminDashboard, getAdminManagement, getAuthState, getCustomerDashboard, getPublicData, getStaffDashboard, postAuth, saveAdminManagement } from '../services/portal-api';
 import { useBookingStore } from '../store/booking-store';
 import type { Booking, Professional, Service } from '../types/booking';
@@ -62,7 +62,127 @@ function Portal() {
   if (route === 'customer-register') return <SaasCustomerRegisterPage onNavigate={navigate} />;
   if (route === 'company-admin-login') return <CompanyLoginPage onNavigate={navigate} />;
   if (route === 'login') return <CustomerLoginPage onNavigate={navigate} />;
-  return <HomePage onNavigate={navigate} />;
+  return <HomeLanding onNavigate={navigate} />;
+}
+
+function HomeLanding({ onNavigate }: { onNavigate: (route: string) => void }) {
+  const [search, setSearch] = useState('');
+  const companiesQuery = useQuery({ queryKey: ['home-marketplace-companies'], queryFn: listMarketplaceCompanies });
+  const companies = companiesQuery.data?.data ?? [];
+  const filteredCompanies = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return companies;
+    return companies.filter((company) => [
+      company.display_name,
+      company.name,
+      company.tagline,
+      company.description,
+      company.city,
+    ].join(' ').toLowerCase().includes(term));
+  }, [companies, search]);
+  const featuredCompanies = filteredCompanies.slice(0, 4);
+  const productFeatures = [
+    { title: 'Marketplace real', text: 'Clientes exploran perfiles de empresas, revisan servicios y se inscriben antes de reservar.', tone: 'cyan' as const },
+    { title: 'Agenda sin solapes', text: 'El backend valida disponibilidad, bloqueos, profesional, servicio y reservas activas.', tone: 'emerald' as const },
+    { title: 'Multiempresa SaaS', text: 'Cada negocio opera su propio catalogo, staff, clientes inscritos y metricas aisladas.', tone: 'violet' as const },
+    { title: 'Roles separados', text: 'Cliente, profesional, empresa y superadmin tienen accesos y paneles dedicados.', tone: 'amber' as const },
+  ];
+
+  return (
+    <PublicFrame onNavigate={onNavigate}>
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.08fr)_minmax(22rem,.92fr)]">
+        <Card className="relative overflow-hidden p-7 sm:p-10">
+          <div className="absolute inset-x-10 top-0 h-32 rounded-full bg-cyan-400/20 blur-3xl" />
+          <div className="relative">
+            <Badge tone="cyan" className="gap-2"><Sparkles size={14} /> Sistema Reserva Marketplace</Badge>
+            <h1 className="mt-5 max-w-5xl text-balance text-5xl font-semibold tracking-[-0.075em] text-white sm:text-7xl">
+              Explora negocios, inscríbete y agenda desde una sola cuenta.
+            </h1>
+            <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-400">
+              Un SaaS moderno para conectar clientes con empresas de servicios, manteniendo agendas, disponibilidad y datos separados por negocio.
+            </p>
+            <div className="mt-8 grid gap-3 sm:grid-cols-[1fr_auto]">
+              <label className="relative">
+                <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                <Input className="h-14 pl-12 text-base" placeholder="Buscar empresa, ciudad o tipo de servicio" value={search} onChange={(event) => setSearch(event.target.value)} />
+              </label>
+              <Button className="h-14" variant="primary" onClick={() => onNavigate('marketplace')}>Abrir marketplace</Button>
+            </div>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Button onClick={() => onNavigate('customer-login')}>Entrar como cliente</Button>
+              <Button onClick={() => onNavigate('customer-register')}>Crear cuenta</Button>
+              <Button onClick={() => onNavigate('company-admin-login')}>Acceso empresa</Button>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-6">
+          <Badge tone="emerald">Características</Badge>
+          <h2 className="mt-4 text-3xl font-semibold tracking-[-0.05em] text-white">Lo que resuelve Sistema Reserva.</h2>
+          <div className="mt-6 grid gap-3">
+            {productFeatures.map((feature) => (
+              <div key={feature.title} className="rounded-[1.35rem] border border-white/10 bg-white/[0.045] p-4">
+                <Badge tone={feature.tone}>{feature.title}</Badge>
+                <p className="mt-3 text-sm leading-6 text-slate-400">{feature.text}</p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </section>
+
+      <Section title="Explorar negocios" eyebrow="Marketplace integrado">
+        <Card className="p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h3 className="text-2xl font-semibold tracking-[-0.04em] text-white">Perfiles de empresas disponibles</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-400">Revisa empresas publicadas, su ciudad y propuesta antes de entrar al perfil completo.</p>
+            </div>
+            <Button onClick={() => onNavigate('marketplace')}>Ver directorio completo</Button>
+          </div>
+          {companiesQuery.isLoading ? <p className="mt-5 text-sm text-slate-400">Cargando empresas...</p> : null}
+          {companiesQuery.isError ? <InlineError message={companiesQuery.error.message} /> : null}
+          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {featuredCompanies.map((company) => (
+              <HomeCompanyCard key={company.id} company={company} onOpen={() => onNavigate('marketplace')} />
+            ))}
+          </div>
+          {!companiesQuery.isLoading && featuredCompanies.length === 0 ? <EmptyState text="No hay empresas que coincidan con la busqueda." /> : null}
+        </Card>
+      </Section>
+
+      <Section title="Cómo funciona" eyebrow="Flujo simple">
+        <div className="grid gap-4 md:grid-cols-3">
+          <FlowCard step="01" title="Busca" text="Explora empresas por nombre, ciudad o propuesta de servicio." />
+          <FlowCard step="02" title="Inscríbete" text="Cuando te interesa una empresa, te inscribes para que pueda usar tus datos en su operación." />
+          <FlowCard step="03" title="Reserva" text="Elige servicio, profesional y horario disponible sin topar agendas." />
+        </div>
+      </Section>
+    </PublicFrame>
+  );
+}
+
+function HomeCompanyCard({ company, onOpen }: { company: MarketplaceCompany; onOpen: () => void }) {
+  return (
+    <button className="group overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/[0.045] text-left transition hover:-translate-y-0.5 hover:border-cyan-300/30 hover:bg-white/[0.07]" onClick={onOpen}>
+      <div className="h-24" style={{ background: `linear-gradient(135deg, ${company.primary_color}99, ${company.accent_color}66)` }} />
+      <div className="p-4">
+        <div className="flex items-center gap-2 text-xs text-slate-500"><Building2 size={14} /> {company.city || 'Sin ciudad'}</div>
+        <h3 className="mt-3 font-semibold text-white">{company.display_name || company.name}</h3>
+        <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-400">{company.tagline || company.description}</p>
+        <p className="mt-4 text-sm font-semibold text-cyan-100 group-hover:text-white">Ver perfil</p>
+      </div>
+    </button>
+  );
+}
+
+function FlowCard({ step, title, text }: { step: string; title: string; text: string }) {
+  return (
+    <Card className="p-6">
+      <span className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/70">{step}</span>
+      <h3 className="mt-5 text-2xl font-semibold text-white">{title}</h3>
+      <p className="mt-3 text-sm leading-6 text-slate-400">{text}</p>
+    </Card>
+  );
 }
 
 function HomePage({ onNavigate }: { onNavigate: (route: string) => void }) {
