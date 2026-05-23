@@ -58,6 +58,10 @@ Modelo de cuenta cliente objetivo:
 - cada empresa ve los datos del cliente solo si existe una membresia en `company_customers`.
 - el cliente ve una agenda global con reservas de todas sus empresas.
 
+Contexto vivo del proyecto:
+
+- `docs/PROJECT_CONTEXT.md` resume donde esta situado el proyecto, la vision marketplace/SaaS y el rumbo de migracion.
+
 Ejemplo:
 
 ```text
@@ -187,6 +191,18 @@ Acciones disponibles actualmente:
 Credenciales demo:
 
 ```text
+Cliente marketplace global
+Ruta: http://127.0.0.1:5173/customer-login
+Email: cliente@marketplace.local
+Clave: Cliente12345
+
+Empresas marketplace demo
+demo
+centro-kine
+estudio-estetica
+consultora-pro
+wellness-studio
+
 Admin
 Tipo: Admin
 Email: admin@sistema.local

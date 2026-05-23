@@ -54,6 +54,8 @@ Incluye:
 - auth cliente global con login/registro sin `company_slug`, endpoints marketplace publicos e inscripcion cliente-empresa
 - portal cliente adaptado a `customer_profiles` y agenda global preparada para multiples empresas
 - flujo frontend marketplace inicial con `/marketplace`, `/customer-login`, `/customer-register` y navegación principal actualizada
+- seed marketplace demo con 5 empresas publicas, catalogo multidisciplinario, profesionales, tarifas por profesional, disponibilidad, bloqueos, cliente global `cliente@marketplace.local` y 5 reservas de ejemplo
+- documento `docs/PROJECT_CONTEXT.md` con ubicacion local, vision SaaS marketplace, arquitectura destino, flujo de pantallas y prioridades de migracion
 
 ## En desarrollo - 2026-05-14
 
