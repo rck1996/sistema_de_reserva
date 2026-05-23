@@ -296,14 +296,12 @@ Inscribe al cliente global autenticado en una empresa usando `company_customers`
 ## Prueba Rapida En React
 
 1. Levantar backend y frontend con `.\start-frontend.cmd`.
-2. Abrir `http://127.0.0.1:5173/saas-login`.
-3. Iniciar sesion con `admin@demo.local` / `Admin12345` / empresa `demo`.
-4. Usar los botones `Listar disciplinas tenant`, `Listar servicios tenant`, `Listar profesionales tenant`, `Listar clientes tenant`, `Listar reservas tenant` y `Crear reserva demo`.
-5. Usar `Abrir dashboard SaaS v1` para revisar métricas reales desde PostgreSQL.
-6. Usar `Abrir calendario SaaS v1` para revisar reservas en FullCalendar, filtros, drawer y acciones de estado.
-7. Usar `Abrir clientes SaaS v1` para revisar búsqueda y creación de clientes sobre PostgreSQL.
-8. Usar `Registro cliente SaaS` para crear cuenta global marketplace.
-9. Usar `Portal cliente SaaS` para revisar perfil y reservas propias.
+2. Abrir `http://127.0.0.1:5173/marketplace`.
+3. Revisar empresas publicas, perfil, disciplinas, servicios y profesionales.
+4. Abrir `http://127.0.0.1:5173/customer-register` para crear cuenta global.
+5. Abrir `http://127.0.0.1:5173/customer-login` para entrar como cliente.
+6. Abrir `http://127.0.0.1:5173/saas-customer` para revisar perfil y agenda global.
+7. Usar `http://127.0.0.1:5173/saas-login` solo como laboratorio API v1 temporal.
 
 ## Profesionales
 

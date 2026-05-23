@@ -19,6 +19,7 @@ const BookingCalendar = lazy(() => import('../features/calendar/booking-calendar
 const SaasCalendar = lazy(() => import('../features/calendar/saas-calendar').then((module) => ({ default: module.SaasCalendar })));
 const SaasCustomerPortal = lazy(() => import('../features/customer/saas-customer-portal').then((module) => ({ default: module.SaasCustomerPortal })));
 const SaasCustomers = lazy(() => import('../features/customers/saas-customers').then((module) => ({ default: module.SaasCustomers })));
+const MarketplaceHome = lazy(() => import('../features/marketplace/marketplace-home').then((module) => ({ default: module.MarketplaceHome })));
 
 export function App() {
   return (
@@ -67,6 +68,10 @@ function Portal() {
   if (route === 'saas-customer') return <SaasCustomerPage onNavigate={navigate} />;
   if (route === 'saas-customers') return <SaasCustomersPage onNavigate={navigate} />;
   if (route === 'saas-customer-register') return <SaasCustomerRegisterPage onNavigate={navigate} />;
+  if (route === 'marketplace') return <MarketplacePage onNavigate={navigate} />;
+  if (route === 'customer-login') return <CustomerLoginPage onNavigate={navigate} />;
+  if (route === 'customer-register') return <SaasCustomerRegisterPage onNavigate={navigate} />;
+  if (route === 'company-admin-login') return <LoginPage csrfToken={csrfToken} onNavigate={navigate} />;
   if (route === 'login') return <LoginPage csrfToken={csrfToken} onNavigate={navigate} />;
   return <HomePage csrfToken={csrfToken} onNavigate={navigate} session={auth.data?.session} />;
 }
@@ -83,15 +88,15 @@ function HomePage({ csrfToken, onNavigate, session }: { csrfToken: string; onNav
     <PublicFrame onNavigate={onNavigate} session={session}>
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
         <Card className="p-7 sm:p-10">
-          <Badge tone="cyan" className="gap-2"><Sparkles size={14} /> SaaS de reservas</Badge>
+          <Badge tone="cyan" className="gap-2"><Sparkles size={14} /> Marketplace de reservas</Badge>
           <h1 className="mt-5 max-w-4xl text-balance text-5xl font-semibold tracking-[-0.07em] text-white sm:text-7xl">
-            {data?.brand.heroTitle || 'Sistema de reservas moderno, configurable y multidisciplinario.'}
+            Encuentra empresas, inscríbete y agenda desde una sola cuenta.
           </h1>
-          <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-400">{data?.brand.heroSubtitle || 'Centraliza agenda, servicios, clientes y profesionales con una experiencia premium.'}</p>
+          <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-400">Una experiencia marketplace para clientes y un panel SaaS operativo para cada empresa.</p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Button variant="primary" onClick={() => onNavigate('login')}>Ingresar</Button>
-            <Button onClick={() => onNavigate('saas-login')}>Probar API v1 JWT</Button>
-            <Button onClick={() => document.getElementById('registro')?.scrollIntoView({ behavior: 'smooth' })}>Crear cliente</Button>
+            <Button variant="primary" onClick={() => onNavigate('marketplace')}>Explorar marketplace</Button>
+            <Button onClick={() => onNavigate('customer-register')}>Crear cuenta cliente</Button>
+            <Button onClick={() => onNavigate('company-admin-login')}>Acceso empresa</Button>
           </div>
         </Card>
         <Card className="p-6">
@@ -139,7 +144,7 @@ function HomePage({ csrfToken, onNavigate, session }: { csrfToken: string; onNav
 
       <Section title="Crear cuenta cliente" eyebrow="Registro" id="registro">
         <Card className="p-6">
-          <form className="grid gap-4 md:grid-cols-2" onSubmit={(event) => submitForm(event, register.mutate, 'register-customer')}>
+          <form className="grid gap-4 md:grid-cols-2" onSubmit={(event) => { event.preventDefault(); onNavigate('customer-register'); }}>
             <Input name="first_name" placeholder="Nombre" required />
             <Input name="last_name" placeholder="Apellido" required />
             <Input name="phone" placeholder="+56900000000" required />
@@ -150,6 +155,51 @@ function HomePage({ csrfToken, onNavigate, session }: { csrfToken: string; onNav
           </form>
         </Card>
       </Section>
+    </PublicFrame>
+  );
+}
+
+function MarketplacePage({ onNavigate }: { onNavigate: (route: string) => void }) {
+  return (
+    <PublicFrame onNavigate={onNavigate}>
+      <Suspense fallback={<CalendarSkeleton />}>
+        <MarketplaceHome onNavigate={onNavigate} />
+      </Suspense>
+    </PublicFrame>
+  );
+}
+
+function CustomerLoginPage({ onNavigate }: { onNavigate: (route: string) => void }) {
+  const { setSession } = useSaasAuthStore();
+  const login = useMutation({
+    mutationFn: (form: FormData) => loginSaasCustomer({
+      email: String(form.get('email') ?? '').toLowerCase(),
+      password: String(form.get('password') ?? ''),
+    }),
+    onSuccess: (payload) => {
+      setSession({ accessToken: payload.access_token, refreshToken: payload.refresh_token, user: payload.user });
+      onNavigate('saas-customer');
+    },
+  });
+
+  return (
+    <PublicFrame onNavigate={onNavigate}>
+      <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[1fr_.9fr]">
+        <Card className="p-8">
+          <Badge tone="emerald">Cliente marketplace</Badge>
+          <h1 className="mt-5 text-5xl font-semibold tracking-[-0.06em] text-white">Entrar a tu agenda global.</h1>
+          <p className="mt-4 text-sm leading-6 text-slate-400">Usa una sola cuenta para ver empresas inscritas y reservas de distintos negocios.</p>
+        </Card>
+        <Card className="p-6">
+          <form className="space-y-4" onSubmit={(event) => submitForm(event, login.mutate, '')}>
+            <Input name="email" type="email" placeholder="cliente@dominio.cl" required />
+            <Input name="password" type="password" placeholder="Clave" required />
+            {login.error ? <p className="rounded-2xl border border-rose-300/20 bg-rose-400/10 p-3 text-sm text-rose-100">{login.error.message}</p> : null}
+            <Button className="w-full" variant="primary" type="submit" disabled={login.isPending}>{login.isPending ? 'Validando...' : 'Entrar'}</Button>
+          </form>
+          <Button className="mt-3 w-full" onClick={() => onNavigate('customer-register')}>Crear cuenta cliente</Button>
+        </Card>
+      </div>
     </PublicFrame>
   );
 }
@@ -1197,7 +1247,7 @@ function RightRail({ professionals, services }: { professionals: Professional[];
 }
 
 function PublicFrame({ children, onNavigate, session }: { children: React.ReactNode; onNavigate: (route: string) => void; session?: { authenticated: boolean; role: string; name: string } }) {
-  return <main className="mx-auto max-w-[1500px] space-y-10 px-4 py-5 sm:px-6 lg:px-8"><header className="flex flex-wrap items-center justify-between gap-3 rounded-[2rem] border border-white/10 bg-white/[0.06] p-3 backdrop-blur-2xl"><button className="flex items-center gap-3 px-3" onClick={() => onNavigate('home')}><span className="grid h-11 w-11 place-items-center rounded-2xl bg-white text-sm font-black text-zinc-950">SR</span><span className="text-left"><span className="block text-sm font-semibold text-white">Sistema Reserva</span><span className="block text-xs text-slate-400">SaaS premium</span></span></button><nav className="flex flex-wrap gap-2"><Button onClick={() => onNavigate('home')}>Inicio</Button><Button onClick={() => onNavigate('login')}>Acceso</Button>{session?.authenticated ? <Button variant="primary" onClick={() => onNavigate(session.role === 'admin' ? 'admin' : session.role === 'staff' ? 'profesional' : 'cliente')}>Mi panel</Button> : null}</nav></header>{children}</main>;
+  return <main className="mx-auto max-w-[1500px] space-y-10 px-4 py-5 sm:px-6 lg:px-8"><header className="flex flex-wrap items-center justify-between gap-3 rounded-[2rem] border border-white/10 bg-white/[0.06] p-3 backdrop-blur-2xl"><button className="flex items-center gap-3 px-3" onClick={() => onNavigate('home')}><span className="grid h-11 w-11 place-items-center rounded-2xl bg-white text-sm font-black text-zinc-950">SR</span><span className="text-left"><span className="block text-sm font-semibold text-white">Sistema Reserva</span><span className="block text-xs text-slate-400">Marketplace SaaS</span></span></button><nav className="flex flex-wrap gap-2"><Button onClick={() => onNavigate('marketplace')}>Marketplace</Button><Button onClick={() => onNavigate('customer-login')}>Cliente</Button><Button onClick={() => onNavigate('company-admin-login')}>Empresa</Button><Button variant="ghost" onClick={() => onNavigate('saas-login')}>Dev API</Button>{session?.authenticated ? <Button variant="primary" onClick={() => onNavigate(session.role === 'admin' ? 'admin' : session.role === 'staff' ? 'profesional' : 'cliente')}>Mi panel</Button> : null}</nav></header>{children}</main>;
 }
 
 function Section({ title, eyebrow, children, id }: { title: string; eyebrow: string; children: React.ReactNode; id?: string }) {

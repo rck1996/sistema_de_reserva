@@ -53,6 +53,7 @@ Incluye:
 - inicio de adaptacion a marketplace: perfiles globales de cliente, membresias empresa-cliente, perfiles publicos de empresa, tarifas por profesional/servicio y bloqueos de disponibilidad
 - auth cliente global con login/registro sin `company_slug`, endpoints marketplace publicos e inscripcion cliente-empresa
 - portal cliente adaptado a `customer_profiles` y agenda global preparada para multiples empresas
+- flujo frontend marketplace inicial con `/marketplace`, `/customer-login`, `/customer-register` y navegación principal actualizada
 
 ## En desarrollo - 2026-05-14
 

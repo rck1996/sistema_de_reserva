@@ -69,6 +69,61 @@ camila@gmail.com
 
 La base marketplace nueva introduce `customer_profiles`, `company_customers`, `company_profiles`, tarifas opcionales por profesional/servicio y bloqueos de disponibilidad por profesional.
 
+### Flujo de pantallas objetivo
+
+Cliente marketplace:
+
+```text
+/                       landing marketplace
+/marketplace            buscador de empresas publicas
+/customer-register      registro de cuenta global
+/customer-login         login cliente global
+/saas-customer          portal cliente: perfil y agenda global
+```
+
+Flujo cliente:
+
+```text
+Crear cuenta global
+-> buscar empresa
+-> ver perfil publico de empresa
+-> revisar disciplinas, servicios, profesionales y tarifas
+-> inscribirse en la empresa
+-> reservar solo si esta inscrito
+-> ver todas sus reservas en agenda global
+```
+
+Empresa:
+
+```text
+/company-admin-login    acceso empresa
+/saas-dashboard         dashboard operativo
+/saas-calendar          calendario de reservas
+/saas-customers         clientes inscritos en la empresa
+```
+
+Flujo empresa:
+
+```text
+Configurar perfil publico y branding
+-> publicar disciplinas y servicios
+-> asociar profesionales a servicios
+-> definir tarifa opcional por profesional/servicio
+-> configurar disponibilidad semanal
+-> crear bloqueos, vacaciones o excepciones
+-> operar reservas desde calendario
+```
+
+Pantallas transicionales:
+
+```text
+/saas-login             laboratorio API v1 durante migracion
+/login, /admin, /cliente, /profesional
+                         pantallas React conectadas al sistema legacy PHP/SQLite
+```
+
+Estas pantallas se mantienen temporalmente para no romper flujos mientras el marketplace reemplaza la experiencia principal.
+
 ## Frontend moderno principal
 
 La carpeta `frontend/` contiene la nueva experiencia principal del producto. Las pantallas publicas, cliente, profesional y administracion se revisan desde React:
