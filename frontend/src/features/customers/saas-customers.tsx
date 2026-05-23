@@ -104,7 +104,7 @@ export function SaasCustomers({ accessToken }: SaasCustomersProps) {
           <div>
             <Badge tone="cyan"><UserRound size={14} className="mr-2" /> Clientes SaaS v1</Badge>
             <h2 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-white">Base de clientes multiempresa.</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">Datos reales desde PostgreSQL, aislados por empresa desde JWT. Esta pantalla reemplaza progresivamente el CRUD legacy.</p>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">Datos reales desde PostgreSQL, aislados por empresa desde JWT.</p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <label className="relative min-w-0 sm:w-80">

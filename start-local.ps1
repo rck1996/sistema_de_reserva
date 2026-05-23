@@ -1,6 +1,6 @@
 $phpExe = 'C:\Users\x13\AppData\Local\Microsoft\WinGet\Packages\PHP.PHP.8.3_Microsoft.Winget.Source_8wekyb3d8bbwe\php.exe'
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$webRoot = Join-Path $projectRoot 'sistema_de_reserva_app'
+$webRoot = Join-Path $projectRoot 'backend'
 $logDir = Join-Path $projectRoot '.local'
 $stdoutLogFile = Join-Path $logDir 'php-server.out.log'
 $stderrLogFile = Join-Path $logDir 'php-server.err.log'

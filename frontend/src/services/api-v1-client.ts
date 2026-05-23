@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/php-api/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
 export async function apiV1<T>(path: string, options: RequestInit = {}, accessToken = ''): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -85,6 +85,13 @@ export function registerSaasCustomer(input: {
 
 export function loginSaasCustomer(input: { email: string; password: string }) {
   return apiV1<SaasAuthResponse>('/auth/customer-login.php', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function loginSaasSuperAdmin(input: { email: string; password: string }) {
+  return apiV1<SaasAuthResponse>('/auth/super-admin-login.php', {
     method: 'POST',
     body: JSON.stringify(input),
   });
@@ -209,6 +216,13 @@ export type SaasBooking = {
   service_duration_minutes: number;
 };
 
+export type StaffWorkday = {
+  professional: SaasProfessional;
+  availability: Array<{ id: string; weekday: number; start_time: string; end_time: string; is_active: boolean }>;
+  blocks: Array<{ id: string; block_type: string; starts_at: string; ends_at: string; reason: string; is_available: boolean }>;
+  bookings: Array<{ id: string; starts_at: string; ends_at: string; status: SaasBooking['status']; notes: string; customer_first_name: string; customer_last_name: string; service_name: string }>;
+};
+
 export type SaasDashboard = {
   metrics: {
     total_bookings: string;
@@ -325,6 +339,35 @@ export function enrollMarketplaceCompany(accessToken: string, companySlug: strin
   return apiV1<{ ok: true; data: { company: MarketplaceCompanyDetail } }>('/marketplace/enroll.php', {
     method: 'POST',
     body: JSON.stringify({ company_slug: companySlug }),
+  }, accessToken);
+}
+
+export function createMarketplaceBooking(accessToken: string, input: {
+  company_slug: string;
+  professional_id: string;
+  service_id: string;
+  starts_at: string;
+  notes?: string;
+}) {
+  return apiV1<{ ok: true; data: SaasBooking }>('/marketplace/bookings.php', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  }, accessToken);
+}
+
+export function getStaffWorkday(accessToken: string) {
+  return apiV1<{ ok: true; data: StaffWorkday }>('/staff/workday.php', {}, accessToken);
+}
+
+export function createStaffTimeBlock(accessToken: string, input: {
+  starts_at: string;
+  ends_at: string;
+  block_type: string;
+  reason?: string;
+}) {
+  return apiV1<{ ok: true; data: StaffWorkday['blocks'][number] }>('/staff/workday.php', {
+    method: 'POST',
+    body: JSON.stringify(input),
   }, accessToken);
 }
 

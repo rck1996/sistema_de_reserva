@@ -39,6 +39,23 @@ final class UserRepository
         return $row === false ? null : $row;
     }
 
+    public function findGlobalSuperAdminByEmail(string $email): ?array
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT users.*, NULL AS company_slug, \'Sistema Reserva\' AS company_name
+             FROM users
+             WHERE users.email = :email
+                AND users.role = \'super_admin\'
+                AND users.company_id IS NULL
+                AND users.is_active = TRUE
+             LIMIT 1'
+        );
+        $statement->execute(array(':email' => $email));
+        $row = $statement->fetch();
+
+        return $row === false ? null : $row;
+    }
+
     public function findById(string $userId): ?array
     {
         $statement = $this->pdo->prepare(

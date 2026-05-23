@@ -9,7 +9,7 @@ import { BookingDrawer } from '../features/booking/booking-drawer';
 import { useSaasAuthStore } from '../features/auth/saas-auth-store';
 import { Metrics } from '../features/dashboard/metrics';
 import { AppShell } from '../layouts/app-shell';
-import { createSaasDemoBooking, getSaasDashboard, getSaasMe, listSaasBookings, listSaasCustomers, listSaasDisciplines, listSaasProfessionals, listSaasServices, loginSaas, loginSaasCustomer, logoutSaas, refreshSaas, registerSaasCustomer } from '../services/api-v1-client';
+import { createSaasDemoBooking, createStaffTimeBlock, getSaasDashboard, getSaasMe, getStaffWorkday, listMarketplaceCompanies, listSaasBookings, listSaasCustomers, listSaasDisciplines, listSaasProfessionals, listSaasServices, loginSaas, loginSaasCustomer, loginSaasSuperAdmin, logoutSaas, refreshSaas, registerSaasCustomer } from '../services/api-v1-client';
 import { createCustomerBooking, getAdminDashboard, getAdminManagement, getAuthState, getCustomerDashboard, getPublicData, getStaffDashboard, postAuth, saveAdminManagement } from '../services/portal-api';
 import { useBookingStore } from '../store/booking-store';
 import type { Booking, Professional, Service } from '../types/booking';
@@ -30,10 +30,7 @@ export function App() {
 }
 
 function Portal() {
-  const queryClient = useQueryClient();
   const [route, setRoute] = useState(() => window.location.pathname === '/' ? 'home' : window.location.pathname.replace('/', ''));
-  const auth = useQuery({ queryKey: ['auth'], queryFn: getAuthState });
-  const csrfToken = auth.data?.csrfToken ?? '';
 
   useEffect(() => {
     const onPop = () => setRoute(window.location.pathname === '/' ? 'home' : window.location.pathname.replace('/', ''));
@@ -47,22 +44,14 @@ function Portal() {
     setRoute(next);
   };
 
-  const logout = useMutation({
-    mutationFn: () => {
-      const form = new FormData();
-      form.set('action', 'logout');
-      return postAuth(form, csrfToken);
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries();
-      navigate('home');
-    },
-  });
-
-  if (route === 'admin') return <AdminPage onNavigate={navigate} onLogout={() => logout.mutate()} />;
-  if (route === 'cliente') return <CustomerPage onNavigate={navigate} onLogout={() => logout.mutate()} />;
-  if (route === 'profesional') return <StaffPage onNavigate={navigate} onLogout={() => logout.mutate()} />;
+  if (route === 'admin') return <SaasDashboardPage onNavigate={navigate} />;
+  if (route === 'cliente') return <SaasCustomerPage onNavigate={navigate} />;
+  if (route === 'profesional') return <StaffWorkspacePage onNavigate={navigate} />;
   if (route === 'saas-login') return <SaasLoginPage onNavigate={navigate} />;
+  if (route === 'staff-login') return <StaffLoginPage onNavigate={navigate} />;
+  if (route === 'superadmin-login') return <SuperAdminLoginPage onNavigate={navigate} />;
+  if (route === 'staff-workspace') return <StaffWorkspacePage onNavigate={navigate} />;
+  if (route === 'superadmin') return <SuperAdminPage onNavigate={navigate} />;
   if (route === 'saas-dashboard') return <SaasDashboardPage onNavigate={navigate} />;
   if (route === 'saas-calendar') return <SaasCalendarPage onNavigate={navigate} />;
   if (route === 'saas-customer') return <SaasCustomerPage onNavigate={navigate} />;
@@ -71,21 +60,29 @@ function Portal() {
   if (route === 'marketplace') return <MarketplacePage onNavigate={navigate} />;
   if (route === 'customer-login') return <CustomerLoginPage onNavigate={navigate} />;
   if (route === 'customer-register') return <SaasCustomerRegisterPage onNavigate={navigate} />;
-  if (route === 'company-admin-login') return <LoginPage csrfToken={csrfToken} onNavigate={navigate} />;
-  if (route === 'login') return <LoginPage csrfToken={csrfToken} onNavigate={navigate} />;
-  return <HomePage csrfToken={csrfToken} onNavigate={navigate} session={auth.data?.session} />;
+  if (route === 'company-admin-login') return <CompanyLoginPage onNavigate={navigate} />;
+  if (route === 'login') return <CustomerLoginPage onNavigate={navigate} />;
+  return <HomePage onNavigate={navigate} />;
 }
 
-function HomePage({ csrfToken, onNavigate, session }: { csrfToken: string; onNavigate: (route: string) => void; session?: { authenticated: boolean; role: string; name: string } }) {
-  const publicData = useQuery({ queryKey: ['public-data'], queryFn: getPublicData });
-  const data = publicData.data;
-  const register = useMutation({
-    mutationFn: (form: FormData) => postAuth(form, csrfToken),
-    onSuccess: () => onNavigate('login'),
-  });
-
+function HomePage({ onNavigate }: { onNavigate: (route: string) => void }) {
+  const data = {
+    brand: { displayName: 'Sistema Reserva' },
+    hours: { opening: '09:00', closing: '18:00' },
+    disciplines: [{ id: 'marketplace', name: 'Marketplace' }, { id: 'saas', name: 'SaaS multiempresa' }, { id: 'agenda', name: 'Agenda inteligente' }],
+    professionals: [
+      { id: 'customer', name: 'Clientes', bio: 'Cuenta global para explorar empresas, inscribirse y administrar agenda personal.' },
+      { id: 'staff', name: 'Profesionales', bio: 'Agenda de trabajo, reservas asignadas y bloqueos de horarios no disponibles.' },
+      { id: 'company', name: 'Empresas', bio: 'Perfil publico, servicios, profesionales, metricas, horarios, feriados y configuracion.' },
+    ],
+    services: [
+      { id: 'marketplace', name: 'Marketplace de negocios', description: 'Directorio publico para explorar empresas, servicios, profesionales y tarifas.', color: '#22d3ee', durationMinutes: 0, price: 0 },
+      { id: 'tenant', name: 'Panel empresa SaaS', description: 'Operacion aislada por empresa con clientes inscritos, agenda, catalogo y metricas.', color: '#8b5cf6', durationMinutes: 0, price: 0 },
+      { id: 'booking', name: 'Reservas con disponibilidad real', description: 'Validacion de horarios, bloqueos, servicios por profesional y solapes de agenda.', color: '#10b981', durationMinutes: 0, price: 0 },
+    ],
+  };
   return (
-    <PublicFrame onNavigate={onNavigate} session={session}>
+    <PublicFrame onNavigate={onNavigate}>
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
         <Card className="p-7 sm:p-10">
           <Badge tone="cyan" className="gap-2"><Sparkles size={14} /> Marketplace de reservas</Badge>
@@ -204,6 +201,259 @@ function CustomerLoginPage({ onNavigate }: { onNavigate: (route: string) => void
   );
 }
 
+function CompanyLoginPage({ onNavigate }: { onNavigate: (route: string) => void }) {
+  const { setSession } = useSaasAuthStore();
+  const login = useMutation({
+    mutationFn: (form: FormData) => loginSaas({
+      companySlug: String(form.get('company_slug') ?? 'demo'),
+      email: String(form.get('email') ?? '').toLowerCase(),
+      password: String(form.get('password') ?? ''),
+    }),
+    onSuccess: (payload) => {
+      setSession({ accessToken: payload.access_token, refreshToken: payload.refresh_token, user: payload.user });
+      onNavigate(payload.user.role === 'staff' ? 'staff-workspace' : 'saas-dashboard');
+    },
+  });
+
+  return (
+    <RoleLoginFrame
+      eyebrow="Empresa"
+      title="Gestiona perfil, agenda, clientes y servicios."
+      description="Acceso para administradores de empresa. Cada dato queda aislado por empresa desde el JWT."
+      demo="demo / admin@demo.local / Admin12345"
+      onNavigate={onNavigate}
+    >
+      <form className="space-y-4" onSubmit={(event) => submitForm(event, login.mutate, '')}>
+        <Input name="company_slug" defaultValue="demo" placeholder="slug empresa" required />
+        <Input name="email" type="email" defaultValue="admin@demo.local" placeholder="admin@empresa.cl" required />
+        <Input name="password" type="password" defaultValue="Admin12345" placeholder="Clave" required />
+        {login.error ? <InlineError message={login.error.message} /> : null}
+        <Button className="w-full" variant="primary" type="submit" disabled={login.isPending}>{login.isPending ? 'Validando...' : 'Entrar como empresa'}</Button>
+      </form>
+    </RoleLoginFrame>
+  );
+}
+
+function StaffLoginPage({ onNavigate }: { onNavigate: (route: string) => void }) {
+  const { setSession } = useSaasAuthStore();
+  const login = useMutation({
+    mutationFn: (form: FormData) => loginSaas({
+      companySlug: String(form.get('company_slug') ?? 'centro-kine'),
+      email: String(form.get('email') ?? '').toLowerCase(),
+      password: String(form.get('password') ?? ''),
+    }),
+    onSuccess: (payload) => {
+      setSession({ accessToken: payload.access_token, refreshToken: payload.refresh_token, user: payload.user });
+      onNavigate('staff-workspace');
+    },
+  });
+
+  return (
+    <RoleLoginFrame
+      eyebrow="Profesional"
+      title="Agenda personal de trabajo y bloqueos."
+      description="Cada profesional vive dentro de una empresa. Su agenda, servicios y bloqueos siempre se filtran por esa empresa."
+      demo="centro-kine / camila.rojas@centrokine.local / Staff12345"
+      onNavigate={onNavigate}
+    >
+      <form className="space-y-4" onSubmit={(event) => submitForm(event, login.mutate, '')}>
+        <Input name="company_slug" defaultValue="centro-kine" placeholder="slug empresa" required />
+        <Input name="email" type="email" defaultValue="camila.rojas@centrokine.local" placeholder="profesional@empresa.cl" required />
+        <Input name="password" type="password" defaultValue="Staff12345" placeholder="Clave" required />
+        {login.error ? <InlineError message={login.error.message} /> : null}
+        <Button className="w-full" variant="primary" type="submit" disabled={login.isPending}>{login.isPending ? 'Validando...' : 'Entrar como profesional'}</Button>
+      </form>
+    </RoleLoginFrame>
+  );
+}
+
+function SuperAdminLoginPage({ onNavigate }: { onNavigate: (route: string) => void }) {
+  const { setSession } = useSaasAuthStore();
+  const login = useMutation({
+    mutationFn: (form: FormData) => loginSaasSuperAdmin({
+      email: String(form.get('email') ?? '').toLowerCase(),
+      password: String(form.get('password') ?? ''),
+    }),
+    onSuccess: (payload) => {
+      setSession({ accessToken: payload.access_token, refreshToken: payload.refresh_token, user: payload.user });
+      onNavigate('superadmin');
+    },
+  });
+
+  return (
+    <RoleLoginFrame
+      eyebrow="Superadmin"
+      title="Control global de la plataforma."
+      description="Pantalla oculta para propietario. No aparece en la navegacion publica."
+      demo="super@rck1996.com / SuperAdmin12345"
+      onNavigate={onNavigate}
+    >
+      <form className="space-y-4" onSubmit={(event) => submitForm(event, login.mutate, '')}>
+        <Input name="email" type="email" defaultValue="super@rck1996.com" placeholder="superadmin@dominio.cl" required />
+        <Input name="password" type="password" defaultValue="SuperAdmin12345" placeholder="Clave" required />
+        {login.error ? <InlineError message={login.error.message} /> : null}
+        <Button className="w-full" variant="primary" type="submit" disabled={login.isPending}>{login.isPending ? 'Validando...' : 'Entrar como superadmin'}</Button>
+      </form>
+    </RoleLoginFrame>
+  );
+}
+
+function RoleLoginFrame({ eyebrow, title, description, demo, onNavigate, children }: { eyebrow: string; title: string; description: string; demo: string; onNavigate: (route: string) => void; children: React.ReactNode }) {
+  return (
+    <PublicFrame onNavigate={onNavigate}>
+      <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[1fr_.9fr]">
+        <Card className="p-8">
+          <Badge tone="cyan"><LockKeyhole size={14} className="mr-2" /> {eyebrow}</Badge>
+          <h1 className="mt-5 text-5xl font-semibold tracking-[-0.06em] text-white">{title}</h1>
+          <p className="mt-4 text-sm leading-6 text-slate-400">{description}</p>
+          <p className="mt-6 rounded-[1.5rem] border border-white/10 bg-white/[0.05] p-4 text-sm text-slate-300">Demo: {demo}</p>
+        </Card>
+        <Card className="p-6">{children}</Card>
+      </div>
+    </PublicFrame>
+  );
+}
+
+function InlineError({ message }: { message: string }) {
+  return <p className="rounded-2xl border border-rose-300/20 bg-rose-400/10 p-3 text-sm text-rose-100">{message}</p>;
+}
+
+function StaffWorkspacePage({ onNavigate }: { onNavigate: (route: string) => void }) {
+  const { accessToken, user, hydrate, clearSession } = useSaasAuthStore();
+  useEffect(() => hydrate(), [hydrate]);
+  const queryClient = useQueryClient();
+  const workday = useQuery({
+    queryKey: ['staff-workday', accessToken],
+    queryFn: () => getStaffWorkday(accessToken),
+    enabled: Boolean(accessToken) && user?.role === 'staff',
+  });
+  const createBlock = useMutation({
+    mutationFn: (form: FormData) => createStaffTimeBlock(accessToken, {
+      starts_at: String(form.get('starts_at') ?? ''),
+      ends_at: String(form.get('ends_at') ?? ''),
+      block_type: String(form.get('block_type') ?? 'block'),
+      reason: String(form.get('reason') ?? ''),
+    }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['staff-workday'] });
+    },
+  });
+
+  if (!accessToken || user?.role !== 'staff') {
+    return <LoginRequired role="profesional" onNavigate={() => onNavigate('staff-login')} />;
+  }
+
+  const data = workday.data?.data;
+
+  return (
+    <PublicFrame onNavigate={onNavigate}>
+      <div className="mx-auto max-w-7xl space-y-6">
+        <SaasTopBar
+          eyebrow="Profesional"
+          title="Agenda personal de trabajo."
+          description={`Profesional dentro de ${user.company_name}. Puede revisar reservas y bloquear horarios no disponibles.`}
+          onNavigate={onNavigate}
+          onLogout={() => { clearSession(); onNavigate('staff-login'); }}
+        />
+        {workday.isLoading ? <CalendarSkeleton /> : null}
+        {workday.isError ? <InlineError message={workday.error.message} /> : null}
+        {data ? (
+          <div className="grid gap-6 xl:grid-cols-[1.1fr_.9fr]">
+            <Card>
+              <CardHeader>
+                <Badge tone="emerald">Reservas asignadas</Badge>
+                <h2 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-white">{data.professional.name}</h2>
+                <p className="mt-2 text-sm text-slate-400">Un profesional no puede tomar dos servicios simultaneos; el backend bloquea solapes activos.</p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {data.bookings.length === 0 ? <EmptyState text="No hay reservas proximas para este profesional." /> : null}
+                {data.bookings.map((booking) => (
+                  <article key={booking.id} className="rounded-[1.5rem] border border-white/10 bg-white/[0.045] p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h3 className="font-semibold text-white">{booking.service_name}</h3>
+                        <p className="mt-1 text-sm text-slate-400">{booking.customer_first_name} {booking.customer_last_name}</p>
+                      </div>
+                      <Badge tone={booking.status === 'confirmed' ? 'emerald' : booking.status === 'cancelled' ? 'rose' : 'amber'}>{booking.status}</Badge>
+                    </div>
+                    <p className="mt-3 text-xs text-slate-500">{new Date(booking.starts_at).toLocaleString('es-CL')} - {new Date(booking.ends_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}</p>
+                  </article>
+                ))}
+              </CardContent>
+            </Card>
+
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <Badge tone="violet">Bloquear horario</Badge>
+                  <h2 className="mt-3 text-2xl font-semibold text-white">No disponible, vacaciones o pausa.</h2>
+                </CardHeader>
+                <CardContent>
+                  <form className="space-y-4" onSubmit={(event) => submitForm(event, createBlock.mutate, '')}>
+                    <Input name="starts_at" type="datetime-local" required />
+                    <Input name="ends_at" type="datetime-local" required />
+                    <Select name="block_type" defaultValue="block">
+                      <option value="block">Bloqueo</option>
+                      <option value="break">Pausa</option>
+                      <option value="vacation">Vacaciones</option>
+                      <option value="exception">Excepcion</option>
+                    </Select>
+                    <Textarea name="reason" placeholder="Motivo visible internamente" />
+                    {createBlock.error ? <InlineError message={createBlock.error.message} /> : null}
+                    {createBlock.data ? <p className="rounded-2xl border border-emerald-300/20 bg-emerald-400/10 p-3 text-sm text-emerald-100">Bloqueo creado.</p> : null}
+                    <Button className="w-full" variant="primary" disabled={createBlock.isPending}>Guardar bloqueo</Button>
+                  </form>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader><p className="text-sm font-semibold text-white">Bloqueos recientes</p></CardHeader>
+                <CardContent className="space-y-3">
+                  {data.blocks.length === 0 ? <EmptyState text="Sin bloqueos definidos." /> : null}
+                  {data.blocks.slice(0, 6).map((block) => (
+                    <div key={block.id} className="rounded-2xl bg-white/[0.04] p-4 text-sm">
+                      <p className="font-semibold text-white">{block.block_type}</p>
+                      <p className="mt-1 text-slate-400">{new Date(block.starts_at).toLocaleString('es-CL')} - {new Date(block.ends_at).toLocaleString('es-CL')}</p>
+                      <p className="mt-1 text-slate-500">{block.reason || 'Sin motivo'}</p>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </PublicFrame>
+  );
+}
+
+function SuperAdminPage({ onNavigate }: { onNavigate: (route: string) => void }) {
+  const { accessToken, user, hydrate, clearSession } = useSaasAuthStore();
+  useEffect(() => hydrate(), [hydrate]);
+  const companies = useQuery({ queryKey: ['marketplace-companies-super', accessToken], queryFn: listMarketplaceCompanies, enabled: Boolean(accessToken) && user?.role === 'super_admin' });
+
+  if (!accessToken || user?.role !== 'super_admin') {
+    return <LoginRequired role="superadmin" onNavigate={() => onNavigate('superadmin-login')} />;
+  }
+
+  return (
+    <PublicFrame onNavigate={onNavigate}>
+      <div className="mx-auto max-w-7xl space-y-6">
+        <Card className="p-8">
+          <Badge tone="rose">Superadmin oculto</Badge>
+          <h1 className="mt-4 text-5xl font-semibold tracking-[-0.06em] text-white">Control global Sistema Reserva.</h1>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">Vista inicial del propietario. Desde aqui se consolidaran empresas, soporte, auditoria, planes, metricas globales y salud de plataforma.</p>
+          <Button className="mt-5" variant="danger" onClick={() => { clearSession(); onNavigate('home'); }}>Cerrar sesion</Button>
+        </Card>
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card className="p-5"><Badge tone="cyan">Empresas publicas</Badge><p className="mt-4 text-4xl font-semibold text-white">{companies.data?.data.length ?? 0}</p></Card>
+          <Card className="p-5"><Badge tone="emerald">PostgreSQL</Badge><p className="mt-4 text-2xl font-semibold text-white">API v1 activa</p></Card>
+          <Card className="p-5"><Badge tone="violet">Modelo</Badge><p className="mt-4 text-2xl font-semibold text-white">Marketplace SaaS</p></Card>
+        </div>
+      </div>
+    </PublicFrame>
+  );
+}
+
 function SaasLoginPage({ onNavigate }: { onNavigate: (route: string) => void }) {
   const { accessToken, refreshToken, user, hydrate, setSession, clearSession } = useSaasAuthStore();
   const [message, setMessage] = useState('');
@@ -298,7 +548,7 @@ function SaasLoginPage({ onNavigate }: { onNavigate: (route: string) => void }) 
         <Card className="p-8">
           <Badge tone="violet"><LockKeyhole size={14} className="mr-2" /> API v1 JWT</Badge>
           <h1 className="mt-5 text-5xl font-semibold tracking-[-0.06em] text-white">Prueba SaaS Auth</h1>
-          <p className="mt-4 text-sm leading-6 text-slate-400">Esta pantalla prueba la nueva autenticacion PostgreSQL/JWT sin reemplazar todavia el login legacy. Sirve para validar Fase 2 desde navegador.</p>
+          <p className="mt-4 text-sm leading-6 text-slate-400">Esta pantalla prueba autenticacion PostgreSQL/JWT y recursos API v1. Queda como laboratorio temporal para desarrollo.</p>
           <div className="mt-6 rounded-[1.5rem] border border-white/10 bg-white/[0.05] p-4 text-sm text-slate-300">
             <p className="font-semibold text-white">Demo</p>
             <p className="mt-2">Empresa: <span className="text-cyan-100">demo</span></p>
@@ -594,7 +844,7 @@ function SaasDashboardPage({ onNavigate }: { onNavigate: (route: string) => void
             <div>
               <Badge tone="cyan"><Activity size={14} className="mr-2" /> Dashboard SaaS v1</Badge>
               <h1 className="mt-5 text-5xl font-semibold tracking-[-0.06em] text-white">Operacion en tiempo real sobre PostgreSQL.</h1>
-              <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-400">Vista inicial protegida por JWT y aislada por empresa. Los datos vienen desde API v1, no desde SQLite legacy.</p>
+              <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-400">Vista inicial protegida por JWT y aislada por empresa. Los datos vienen desde API v1 y PostgreSQL.</p>
             </div>
             <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-4 text-sm text-slate-300">
               <p className="font-semibold text-white">{user?.company_name ?? 'Empresa'}</p>
@@ -1247,7 +1497,7 @@ function RightRail({ professionals, services }: { professionals: Professional[];
 }
 
 function PublicFrame({ children, onNavigate, session }: { children: React.ReactNode; onNavigate: (route: string) => void; session?: { authenticated: boolean; role: string; name: string } }) {
-  return <main className="mx-auto max-w-[1500px] space-y-10 px-4 py-5 sm:px-6 lg:px-8"><header className="flex flex-wrap items-center justify-between gap-3 rounded-[2rem] border border-white/10 bg-white/[0.06] p-3 backdrop-blur-2xl"><button className="flex items-center gap-3 px-3" onClick={() => onNavigate('home')}><span className="grid h-11 w-11 place-items-center rounded-2xl bg-white text-sm font-black text-zinc-950">SR</span><span className="text-left"><span className="block text-sm font-semibold text-white">Sistema Reserva</span><span className="block text-xs text-slate-400">Marketplace SaaS</span></span></button><nav className="flex flex-wrap gap-2"><Button onClick={() => onNavigate('marketplace')}>Marketplace</Button><Button onClick={() => onNavigate('customer-login')}>Cliente</Button><Button onClick={() => onNavigate('company-admin-login')}>Empresa</Button><Button variant="ghost" onClick={() => onNavigate('saas-login')}>Dev API</Button>{session?.authenticated ? <Button variant="primary" onClick={() => onNavigate(session.role === 'admin' ? 'admin' : session.role === 'staff' ? 'profesional' : 'cliente')}>Mi panel</Button> : null}</nav></header>{children}</main>;
+  return <main className="mx-auto max-w-[1500px] space-y-10 px-4 py-5 sm:px-6 lg:px-8"><header className="flex flex-wrap items-center justify-between gap-3 rounded-[2rem] border border-white/10 bg-white/[0.06] p-3 backdrop-blur-2xl"><button className="flex items-center gap-3 px-3" onClick={() => onNavigate('home')}><span className="grid h-11 w-11 place-items-center rounded-2xl bg-white text-sm font-black text-zinc-950">SR</span><span className="text-left"><span className="block text-sm font-semibold text-white">Sistema Reserva</span><span className="block text-xs text-slate-400">Marketplace SaaS</span></span></button><nav className="flex flex-wrap gap-2"><Button onClick={() => onNavigate('marketplace')}>Explorar negocios</Button><Button onClick={() => onNavigate('customer-login')}>Login cliente</Button><Button onClick={() => onNavigate('staff-login')}>Login profesional</Button><Button onClick={() => onNavigate('company-admin-login')}>Login empresa</Button>{session?.authenticated ? <Button variant="primary" onClick={() => onNavigate(session.role === 'admin' ? 'admin' : session.role === 'staff' ? 'profesional' : 'cliente')}>Mi panel</Button> : null}</nav></header>{children}</main>;
 }
 
 function Section({ title, eyebrow, children, id }: { title: string; eyebrow: string; children: React.ReactNode; id?: string }) {

@@ -73,6 +73,103 @@ final class ProfessionalRepository
         }
     }
 
+    public function findByUser(string $companyId, string $userId): array
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT *
+             FROM professionals
+             WHERE company_id = :company_id AND user_id = :user_id AND is_active = TRUE
+             LIMIT 1'
+        );
+        $statement->execute(array(':company_id' => $companyId, ':user_id' => $userId));
+        $professional = $statement->fetch();
+
+        if (!$professional) {
+            throw new RuntimeException('Profesional no encontrado para esta empresa.');
+        }
+
+        return $professional;
+    }
+
+    public function workday(string $companyId, string $userId): array
+    {
+        $professional = $this->findByUser($companyId, $userId);
+
+        $availability = $this->pdo->prepare(
+            'SELECT id, weekday, start_time, end_time, is_active
+             FROM professional_availability
+             WHERE company_id = :company_id AND professional_id = :professional_id
+             ORDER BY weekday ASC, start_time ASC'
+        );
+        $availability->execute(array(
+            ':company_id' => $companyId,
+            ':professional_id' => $professional['id'],
+        ));
+
+        $blocks = $this->pdo->prepare(
+            'SELECT id, block_type, starts_at, ends_at, reason, is_available
+             FROM professional_time_blocks
+             WHERE company_id = :company_id AND professional_id = :professional_id
+             ORDER BY starts_at DESC
+             LIMIT 50'
+        );
+        $blocks->execute(array(
+            ':company_id' => $companyId,
+            ':professional_id' => $professional['id'],
+        ));
+
+        $bookings = $this->pdo->prepare(
+            'SELECT bookings.id, bookings.starts_at, bookings.ends_at, bookings.status, bookings.notes,
+                    customers.first_name AS customer_first_name, customers.last_name AS customer_last_name,
+                    services.name AS service_name
+             FROM bookings
+             JOIN customers ON customers.id = bookings.customer_id AND customers.company_id = bookings.company_id
+             JOIN services ON services.id = bookings.service_id AND services.company_id = bookings.company_id
+             WHERE bookings.company_id = :company_id
+                AND bookings.professional_id = :professional_id
+                AND bookings.starts_at >= NOW() - INTERVAL \'7 days\'
+             ORDER BY bookings.starts_at ASC
+             LIMIT 100'
+        );
+        $bookings->execute(array(
+            ':company_id' => $companyId,
+            ':professional_id' => $professional['id'],
+        ));
+
+        return array(
+            'professional' => $professional,
+            'availability' => $availability->fetchAll(),
+            'blocks' => $blocks->fetchAll(),
+            'bookings' => $bookings->fetchAll(),
+        );
+    }
+
+    public function createTimeBlock(string $companyId, string $userId, array $data): array
+    {
+        $professional = $this->findByUser($companyId, $userId);
+        $start = new DateTimeImmutable($data['starts_at']);
+        $end = new DateTimeImmutable($data['ends_at']);
+        if ($end <= $start) {
+            throw new InvalidArgumentException('El bloqueo debe terminar despues de iniciar.');
+        }
+
+        $statement = $this->pdo->prepare(
+            'INSERT INTO professional_time_blocks (company_id, professional_id, block_type, starts_at, ends_at, reason, is_available)
+             VALUES (:company_id, :professional_id, :block_type, :starts_at, :ends_at, :reason, FALSE)
+             RETURNING id, company_id, professional_id, block_type, starts_at, ends_at, reason, is_available'
+        );
+        $statement->execute(array(
+            ':company_id' => $companyId,
+            ':professional_id' => $professional['id'],
+            ':block_type' => in_array($data['block_type'], array('block', 'vacation', 'break', 'exception'), true) ? $data['block_type'] : 'block',
+            ':starts_at' => $start->format(DateTimeInterface::ATOM),
+            ':ends_at' => $end->format(DateTimeInterface::ATOM),
+            ':reason' => $data['reason'] ?? '',
+        ));
+
+        return $statement->fetch();
+    }
+
     private function findByCompany(string $companyId, string $professionalId): array
     {
         $statement = $this->pdo->prepare(

@@ -38,6 +38,16 @@ final class AuthService
         return $this->issueTokenPair($user);
     }
 
+    public function loginSuperAdmin(string $email, string $password): array
+    {
+        $user = $this->users->findGlobalSuperAdminByEmail($email);
+        if ($user === null || !password_verify($password, (string) $user['password_hash'])) {
+            throw new RuntimeException('Credenciales invalidas');
+        }
+
+        return $this->issueTokenPair($user);
+    }
+
     public function registerCompany(string $companyName, string $companySlug, string $email, string $password, string $username = ''): array
     {
         $user = $this->users->createCompanyAdmin($companyName, $companySlug, $email, $password, $username);

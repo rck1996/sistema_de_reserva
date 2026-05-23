@@ -24,12 +24,12 @@ https://github.com/rck1996/sistema_de_reserva
 
 `sistema_de_reserva` nacio como una renovacion de un sistema de reservas orientado a peluqueria, pero esa identidad ya no es el objetivo. La direccion actual es una plataforma SaaS marketplace multiempresa para reservas multidisciplinarias.
 
-La aplicacion esta en una etapa de migracion incremental:
+La aplicacion esta en una etapa de migracion hacia arquitectura SaaS limpia:
 
-- el sistema legacy PHP + SQLite sigue existiendo para no romper funcionalidades antiguas.
 - el nuevo frontend esta en `frontend/` con React, TypeScript, Vite y Tailwind.
 - la nueva API v1 esta en `backend/` con PHP modular, JWT y PostgreSQL.
 - la base nueva usa PostgreSQL y migraciones SQL versionadas.
+- el arbol PHP/SQLite legacy fue retirado del flujo activo.
 - Mercado Pago, correo y WhatsApp estan pausados/desactivados hasta que se defina proveedor y modelo comercial.
 
 ## Vision nueva
@@ -109,8 +109,6 @@ frontend/
     store/
     types/
 
-sistema_de_reserva_app/
-  sistema legacy PHP + SQLite transicional
 ```
 
 ## Flujo de pantallas objetivo
@@ -134,14 +132,12 @@ Empresa:
 /saas-customers         clientes inscritos
 ```
 
-Transicional:
+Herramientas internas:
 
 ```text
-/saas-login             laboratorio API v1
-/login                  login legacy/React
-/admin                  admin legacy/React
-/cliente                cliente legacy/React
-/profesional            profesional legacy/React
+/saas-login             laboratorio API v1 temporal
+/superadmin-login       login oculto propietario
+/superadmin             control global inicial
 ```
 
 ## Datos demo actuales
@@ -172,7 +168,7 @@ Prioridades inmediatas:
 - completar el flujo de reserva marketplace desde perfil de empresa.
 - crear dashboard empresa completo sobre PostgreSQL.
 - terminar CRUD de empresa para disciplinas, servicios, profesionales, disponibilidad y bloqueos.
-- migrar pantallas legacy restantes o retirarlas cuando ya no aporten.
+- retirar componentes React muertos heredados de la etapa transicional.
 - mejorar aislamiento tenant con pruebas automaticas.
 - agregar seeds y pruebas de humo repetibles.
 - preparar dockerizacion y modo produccion.

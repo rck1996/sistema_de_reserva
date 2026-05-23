@@ -132,6 +132,29 @@ Content-Type: application/json
 
 El cliente marketplace inicia sesion globalmente, sin `company_slug`.
 
+Demo:
+
+```json
+{
+  "email": "cliente@marketplace.local",
+  "password": "Cliente12345"
+}
+```
+
+## Login Superadmin
+
+```http
+POST /api/v1/auth/super-admin-login.php
+Content-Type: application/json
+```
+
+```json
+{
+  "email": "super@rck1996.com",
+  "password": "SuperAdmin12345"
+}
+```
+
 ## Register Cliente Marketplace
 
 ```http
@@ -156,40 +179,12 @@ Esto crea:
 - access token
 - refresh token
 
-## Register Cliente Tenant Legacy
-
-Legacy. No usar para nuevas pantallas marketplace. Se mantiene temporalmente solo para compatibilidad durante la migracion.
-
-```http
-POST /api/v1/auth/register-customer.php
-Content-Type: application/json
-```
-
-```json
-{
-  "company_slug": "demo",
-  "first_name": "Camila",
-  "last_name": "Rojas",
-  "email": "camila@demo.local",
-  "phone": "+56911111111",
-  "password": "Cliente123"
-}
-```
-
-Esto crea una cuenta cliente dentro de la empresa indicada:
-
-- `users.role = customer`
-- `customers.user_id = users.id`
-- `customers.company_id = companies.id`
-- access token
-- refresh token
-
 Modelo marketplace objetivo:
 
 - el cliente tiene cuenta global.
 - el cliente puede inscribirse en multiples empresas mediante `company_customers`.
 - el portal cliente debe resolver `users.id -> customer_profiles.user_id`; no acepta `customer_id` desde frontend.
-- `register-customer.php` queda marcado como legacy; usar `customer-register.php` y `customer-login.php` para el marketplace.
+- usar `customer-register.php` y `customer-login.php` para cuentas cliente marketplace.
 
 ## Claims JWT
 
@@ -235,7 +230,7 @@ La pantalla permite probar:
 - persistencia temporal en `localStorage`
 - listado protegido de servicios y clientes tenant
 
-Esta pantalla es incremental y no reemplaza aun el login legacy.
+Esta pantalla queda como laboratorio temporal de API v1.
 
 Recursos tenant protegidos:
 

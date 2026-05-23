@@ -56,6 +56,10 @@ Incluye:
 - flujo frontend marketplace inicial con `/marketplace`, `/customer-login`, `/customer-register` y navegación principal actualizada
 - seed marketplace demo con 5 empresas publicas, catalogo multidisciplinario, profesionales, tarifas por profesional, disponibilidad, bloqueos, cliente global `cliente@marketplace.local` y 5 reservas de ejemplo
 - documento `docs/PROJECT_CONTEXT.md` con ubicacion local, vision SaaS marketplace, arquitectura destino, flujo de pantallas y prioridades de migracion
+- corte del flujo activo legacy PHP/SQLite: backend local ahora sirve `backend/`, frontend consume `/api/v1`, y se retiro `sistema_de_reserva_app/`
+- login por rol separado: cliente, profesional, empresa y superadmin oculto
+- workspace profesional con agenda por empresa y creacion de bloqueos de horario
+- reservas marketplace con validacion de inscripcion, servicio-profesional, disponibilidad, bloqueos y solape de agenda
 
 ## En desarrollo - 2026-05-14
 

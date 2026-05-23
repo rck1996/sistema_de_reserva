@@ -57,26 +57,32 @@ final class BookingRepository
             }
 
             $startsAt = $this->parseStartDate($data['starts_at']);
-            $duration = max(15, (int) $service['duration_minutes']);
+            $duration = $this->effectiveDuration($companyId, $data['professional_id'], $data['service_id'], (int) $service['duration_minutes']);
             $endsAt = (clone $startsAt)->modify('+' . $duration . ' minutes');
 
+            $this->assertProfessionalAvailability($companyId, $data['professional_id'], $startsAt, $endsAt);
             $this->assertNoOverlap($companyId, $data['professional_id'], $startsAt, $endsAt);
 
             $status = in_array($data['status'], self::VALID_STATUSES, true) ? $data['status'] : 'pending';
+            $price = $this->effectivePrice($companyId, $data['professional_id'], $data['service_id'], (string) $service['price']);
             $statement = $this->pdo->prepare(
-                'INSERT INTO bookings (company_id, customer_id, professional_id, service_id, starts_at, ends_at, status, notes)
-                 VALUES (:company_id, :customer_id, :professional_id, :service_id, :starts_at, :ends_at, :status, :notes)
+                'INSERT INTO bookings (company_id, customer_id, customer_profile_id, company_customer_id, professional_id, service_id, starts_at, ends_at, status, notes, final_price, price_source)
+                 VALUES (:company_id, :customer_id, :customer_profile_id, :company_customer_id, :professional_id, :service_id, :starts_at, :ends_at, :status, :notes, :final_price, :price_source)
                  RETURNING id'
             );
             $statement->execute(array(
                 ':company_id' => $companyId,
                 ':customer_id' => $data['customer_id'],
+                ':customer_profile_id' => $data['customer_profile_id'] ?? null,
+                ':company_customer_id' => $data['company_customer_id'] ?? null,
                 ':professional_id' => $data['professional_id'],
                 ':service_id' => $data['service_id'],
                 ':starts_at' => $startsAt->format(DateTimeInterface::ATOM),
                 ':ends_at' => $endsAt->format(DateTimeInterface::ATOM),
                 ':status' => $status,
                 ':notes' => $data['notes'],
+                ':final_price' => $price['amount'],
+                ':price_source' => $price['source'],
             ));
 
             $bookingId = (string) $statement->fetchColumn();
@@ -89,6 +95,25 @@ final class BookingRepository
             }
             throw $exception;
         }
+    }
+
+    public function createFromMarketplaceCustomer(string $userId, array $data): array
+    {
+        $company = $this->companyBySlug($data['company_slug']);
+        $profile = $this->customerProfileForUser($userId);
+        $membership = $this->activeCompanyCustomer((string) $company['id'], (string) $profile['id']);
+        $localCustomer = $this->ensureLocalCustomer((string) $company['id'], $userId, $profile);
+
+        return $this->create((string) $company['id'], array(
+            'customer_id' => $localCustomer['id'],
+            'customer_profile_id' => $profile['id'],
+            'company_customer_id' => $membership['id'],
+            'professional_id' => $data['professional_id'],
+            'service_id' => $data['service_id'],
+            'starts_at' => $data['starts_at'],
+            'status' => 'pending',
+            'notes' => $data['notes'] ?? 'Reserva creada desde marketplace.',
+        ));
     }
 
     public function updateStatus(string $companyId, string $bookingId, string $status): array
@@ -126,6 +151,7 @@ final class BookingRepository
         $start = $this->parseStartDate($startsAt);
         $end = (clone $start)->modify('+' . (int) $booking['service_duration_minutes'] . ' minutes');
         $this->assertNoOverlap($companyId, (string) $booking['professional_id'], $start, $end, $bookingId);
+        $this->assertProfessionalAvailability($companyId, (string) $booking['professional_id'], $start, $end);
 
         $statement = $this->pdo->prepare(
             'UPDATE bookings
@@ -193,6 +219,7 @@ final class BookingRepository
              WHERE company_id = :company_id
                 AND professional_id = :professional_id
                 AND service_id = :service_id
+                AND is_active = TRUE
              LIMIT 1'
         );
         $statement->execute(array(
@@ -202,6 +229,45 @@ final class BookingRepository
         ));
 
         return (bool) $statement->fetchColumn();
+    }
+
+    private function effectiveDuration(string $companyId, string $professionalId, string $serviceId, int $fallback): int
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT COALESCE(custom_duration_minutes, :fallback) AS duration_minutes
+             FROM professional_services
+             WHERE company_id = :company_id AND professional_id = :professional_id AND service_id = :service_id
+             LIMIT 1'
+        );
+        $statement->execute(array(
+            ':company_id' => $companyId,
+            ':professional_id' => $professionalId,
+            ':service_id' => $serviceId,
+            ':fallback' => $fallback,
+        ));
+
+        return max(15, (int) ($statement->fetchColumn() ?: $fallback));
+    }
+
+    private function effectivePrice(string $companyId, string $professionalId, string $serviceId, string $fallback): array
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT custom_price
+             FROM professional_services
+             WHERE company_id = :company_id AND professional_id = :professional_id AND service_id = :service_id
+             LIMIT 1'
+        );
+        $statement->execute(array(
+            ':company_id' => $companyId,
+            ':professional_id' => $professionalId,
+            ':service_id' => $serviceId,
+        ));
+        $customPrice = $statement->fetchColumn();
+
+        return array(
+            'amount' => $customPrice !== false && $customPrice !== null ? $customPrice : $fallback,
+            'source' => $customPrice !== false && $customPrice !== null ? 'professional_custom' : 'service_base',
+        );
     }
 
     private function assertNoOverlap(string $companyId, string $professionalId, DateTimeImmutable $startsAt, DateTimeImmutable $endsAt, string $ignoreBookingId = ''): void
@@ -234,6 +300,133 @@ final class BookingRepository
         if ($statement->fetchColumn()) {
             throw new InvalidArgumentException('El profesional ya tiene una reserva en ese horario.');
         }
+    }
+
+    private function assertProfessionalAvailability(string $companyId, string $professionalId, DateTimeImmutable $startsAt, DateTimeImmutable $endsAt): void
+    {
+        $weekday = (int) $startsAt->format('w');
+        $statement = $this->pdo->prepare(
+            'SELECT 1
+             FROM professional_availability
+             WHERE company_id = :company_id
+                AND professional_id = :professional_id
+                AND weekday = :weekday
+                AND is_active = TRUE
+                AND start_time <= CAST(:start_time AS time)
+                AND end_time >= CAST(:end_time AS time)
+             LIMIT 1'
+        );
+        $statement->execute(array(
+            ':company_id' => $companyId,
+            ':professional_id' => $professionalId,
+            ':weekday' => $weekday,
+            ':start_time' => $startsAt->format('H:i:s'),
+            ':end_time' => $endsAt->format('H:i:s'),
+        ));
+
+        if (!$statement->fetchColumn()) {
+            throw new InvalidArgumentException('El profesional no trabaja en ese horario.');
+        }
+
+        $blocks = $this->pdo->prepare(
+            'SELECT 1
+             FROM professional_time_blocks
+             WHERE company_id = :company_id
+                AND professional_id = :professional_id
+                AND is_available = FALSE
+                AND starts_at < :ends_at
+                AND ends_at > :starts_at
+             LIMIT 1'
+        );
+        $blocks->execute(array(
+            ':company_id' => $companyId,
+            ':professional_id' => $professionalId,
+            ':starts_at' => $startsAt->format(DateTimeInterface::ATOM),
+            ':ends_at' => $endsAt->format(DateTimeInterface::ATOM),
+        ));
+
+        if ($blocks->fetchColumn()) {
+            throw new InvalidArgumentException('El profesional tiene un bloqueo en ese horario.');
+        }
+    }
+
+    private function companyBySlug(string $slug): array
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT companies.*
+             FROM companies
+             JOIN company_profiles ON company_profiles.company_id = companies.id
+             WHERE companies.slug = :slug AND company_profiles.is_public = TRUE
+             LIMIT 1'
+        );
+        $statement->execute(array(':slug' => $slug));
+        $company = $statement->fetch();
+        if (!$company) {
+            throw new InvalidArgumentException('Empresa no encontrada.');
+        }
+
+        return $company;
+    }
+
+    private function customerProfileForUser(string $userId): array
+    {
+        $statement = $this->pdo->prepare('SELECT * FROM customer_profiles WHERE user_id = :user_id AND is_active = TRUE LIMIT 1');
+        $statement->execute(array(':user_id' => $userId));
+        $profile = $statement->fetch();
+        if (!$profile) {
+            throw new InvalidArgumentException('Perfil de cliente no encontrado.');
+        }
+
+        return $profile;
+    }
+
+    private function activeCompanyCustomer(string $companyId, string $customerProfileId): array
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT *
+             FROM company_customers
+             WHERE company_id = :company_id
+                AND customer_profile_id = :customer_profile_id
+                AND status = \'active\'
+             LIMIT 1'
+        );
+        $statement->execute(array(
+            ':company_id' => $companyId,
+            ':customer_profile_id' => $customerProfileId,
+        ));
+        $membership = $statement->fetch();
+        if (!$membership) {
+            throw new InvalidArgumentException('Debes inscribirte en esta empresa antes de reservar.');
+        }
+
+        return $membership;
+    }
+
+    private function ensureLocalCustomer(string $companyId, string $userId, array $profile): array
+    {
+        $statement = $this->pdo->prepare(
+            'INSERT INTO customers (company_id, user_id, first_name, last_name, email, phone, notes, is_active)
+             VALUES (:company_id, :user_id, :first_name, :last_name, :email, :phone, :notes, TRUE)
+             ON CONFLICT (company_id, email) DO UPDATE
+             SET user_id = EXCLUDED.user_id,
+                 first_name = EXCLUDED.first_name,
+                 last_name = EXCLUDED.last_name,
+                 phone = EXCLUDED.phone,
+                 is_active = TRUE,
+                 updated_at = NOW()
+             RETURNING *'
+        );
+        $statement->execute(array(
+            ':company_id' => $companyId,
+            ':user_id' => $userId,
+            ':first_name' => $profile['first_name'],
+            ':last_name' => $profile['last_name'],
+            ':email' => $profile['email'],
+            ':phone' => $profile['phone'],
+            ':notes' => $profile['notes'],
+        ));
+
+        return $statement->fetch();
     }
 
     private function parseStartDate(string $startsAt): DateTimeImmutable
